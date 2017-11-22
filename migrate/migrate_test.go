@@ -1,6 +1,7 @@
 package migrate
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -31,19 +32,19 @@ var (
 		{
 			ID: "201608301400",
 			Migrate: func(tx *xorm.Engine) error {
-				return tx.Sync2(&Person{})
+				return tx.Sync2(context.Background(), &Person{})
 			},
 			Rollback: func(tx *xorm.Engine) error {
-				return tx.DropTables(&Person{})
+				return tx.DropTables(context.Background(), &Person{})
 			},
 		},
 		{
 			ID: "201608301430",
 			Migrate: func(tx *xorm.Engine) error {
-				return tx.Sync2(&Pet{})
+				return tx.Sync2(context.Background(), &Pet{})
 			},
 			Rollback: func(tx *xorm.Engine) error {
-				return tx.DropTables(&Pet{})
+				return tx.DropTables(context.Background(), &Pet{})
 			},
 		},
 	}
@@ -58,33 +59,33 @@ func TestMigration(t *testing.T) {
 	}
 	defer db.Close()
 
-	if err = db.DB().Ping(); err != nil {
+	if err = db.DB().PingContext(context.Background()); err != nil {
 		log.Fatal(err)
 	}
 
 	m := New(db, DefaultOptions, migrations)
 
-	err = m.Migrate()
+	err = m.Migrate(context.Background())
 	assert.NoError(t, err)
-	exists, _ := db.IsTableExist(&Person{})
+	exists, _ := db.IsTableExist(context.Background(), &Person{})
 	assert.True(t, exists)
-	exists, _ = db.IsTableExist(&Pet{})
+	exists, _ = db.IsTableExist(context.Background(), &Pet{})
 	assert.True(t, exists)
 	assert.Equal(t, 2, tableCount(db, "migrations"))
 
-	err = m.RollbackLast()
+	err = m.RollbackLast(context.Background())
 	assert.NoError(t, err)
-	exists, _ = db.IsTableExist(&Person{})
+	exists, _ = db.IsTableExist(context.Background(), &Person{})
 	assert.True(t, exists)
-	exists, _ = db.IsTableExist(&Pet{})
+	exists, _ = db.IsTableExist(context.Background(), &Pet{})
 	assert.False(t, exists)
 	assert.Equal(t, 1, tableCount(db, "migrations"))
 
-	err = m.RollbackLast()
+	err = m.RollbackLast(context.Background())
 	assert.NoError(t, err)
-	exists, _ = db.IsTableExist(&Person{})
+	exists, _ = db.IsTableExist(context.Background(), &Person{})
 	assert.False(t, exists)
-	exists, _ = db.IsTableExist(&Pet{})
+	exists, _ = db.IsTableExist(context.Background(), &Pet{})
 	assert.False(t, exists)
 	assert.Equal(t, 0, tableCount(db, "migrations"))
 }
@@ -97,26 +98,26 @@ func TestInitSchema(t *testing.T) {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	if err = db.DB().Ping(); err != nil {
+	if err = db.DB().PingContext(context.Background()); err != nil {
 		log.Fatal(err)
 	}
 
 	m := New(db, DefaultOptions, migrations)
 	m.InitSchema(func(tx *xorm.Engine) error {
-		if err := tx.Sync2(&Person{}); err != nil {
+		if err := tx.Sync2(context.Background(), &Person{}); err != nil {
 			return err
 		}
-		if err := tx.Sync2(&Pet{}); err != nil {
+		if err := tx.Sync2(context.Background(), &Pet{}); err != nil {
 			return err
 		}
 		return nil
 	})
 
-	err = m.Migrate()
+	err = m.Migrate(context.Background())
 	assert.NoError(t, err)
-	exists, _ := db.IsTableExist(&Person{})
+	exists, _ := db.IsTableExist(context.Background(), &Person{})
 	assert.True(t, exists)
-	exists, _ = db.IsTableExist(&Pet{})
+	exists, _ = db.IsTableExist(context.Background(), &Pet{})
 	assert.True(t, exists)
 	assert.Equal(t, 2, tableCount(db, "migrations"))
 }
@@ -129,7 +130,7 @@ func TestMissingID(t *testing.T) {
 	if db != nil {
 		defer db.Close()
 	}
-	assert.NoError(t, db.DB().Ping())
+	assert.NoError(t, db.DB().PingContext(context.Background()))
 
 	migrationsMissingID := []*Migration{
 		{
@@ -140,11 +141,11 @@ func TestMissingID(t *testing.T) {
 	}
 
 	m := New(db, DefaultOptions, migrationsMissingID)
-	assert.Equal(t, ErrMissingID, m.Migrate())
+	assert.Equal(t, ErrMissingID, m.Migrate(context.Background()))
 }
 
 func tableCount(db *xorm.Engine, tableName string) (count int) {
-	row := db.DB().QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s", tableName))
+	row := db.DB().QueryRow(context.Background(), fmt.Sprintf("SELECT COUNT(*) FROM %s", tableName))
 	row.Scan(&count)
 	return
 }

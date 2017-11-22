@@ -30,5 +30,5 @@ jobs:
       - run: git clone https://github.com/micanzhang/core /go/src/github.com/go-xorm/core
       - run: go get github.com/go-xorm/builder
       - run: go get -v -t -d ./...
-      - run: go test -v -race ./...
+      - run: go test -v -race . ./migrate
       - run: go build .

@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -21,9 +22,9 @@ func TestBefore_Get(t *testing.T) {
 		Val  string `xorm:"-"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(BeforeTable)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(BeforeTable)))
 
-	cnt, err := testEngine.Insert(&BeforeTable{
+	cnt, err := testEngine.Insert(context.Background(), &BeforeTable{
 		Name: "test",
 	})
 	assert.NoError(t, err)
@@ -32,7 +33,7 @@ func TestBefore_Get(t *testing.T) {
 	var be BeforeTable
 	has, err := testEngine.Before(func(bean interface{}) {
 		bean.(*BeforeTable).Val = "val"
-	}).Get(&be)
+	}).Get(context.Background(), &be)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, "val", be.Val)
@@ -48,9 +49,9 @@ func TestBefore_Find(t *testing.T) {
 		Val  string `xorm:"-"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(BeforeTable2)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(BeforeTable2)))
 
-	cnt, err := testEngine.Insert([]BeforeTable2{
+	cnt, err := testEngine.Insert(context.Background(), []BeforeTable2{
 		{Name: "test1"},
 		{Name: "test2"},
 	})
@@ -60,7 +61,7 @@ func TestBefore_Find(t *testing.T) {
 	var be []BeforeTable2
 	err = testEngine.Before(func(bean interface{}) {
 		bean.(*BeforeTable2).Val = "val"
-	}).Find(&be)
+	}).Find(context.Background(), &be)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(be))
 	assert.Equal(t, "val", be[0].Val)
@@ -124,14 +125,14 @@ func (p *ProcessorsStruct) AfterSet(col string, cell Cell) {
 func TestProcessors(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.DropTables(&ProcessorsStruct{})
+	err := testEngine.DropTables(context.Background(), &ProcessorsStruct{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 	p := &ProcessorsStruct{}
 
-	err = testEngine.CreateTables(&ProcessorsStruct{})
+	err = testEngine.CreateTables(context.Background(), &ProcessorsStruct{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -153,7 +154,7 @@ func TestProcessors(t *testing.T) {
 		}
 	}
 
-	_, err = testEngine.Before(b4InsertFunc).After(afterInsertFunc).Insert(p)
+	_, err = testEngine.Before(b4InsertFunc).After(afterInsertFunc).Insert(context.Background(), p)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -173,7 +174,7 @@ func TestProcessors(t *testing.T) {
 	}
 
 	p2 := &ProcessorsStruct{}
-	_, err = testEngine.ID(p.Id).Get(p2)
+	_, err = testEngine.ID(p.Id).Get(context.Background(), p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -201,7 +202,7 @@ func TestProcessors(t *testing.T) {
 
 	// test find processors
 	var p2Find []*ProcessorsStruct
-	err = testEngine.Find(&p2Find)
+	err = testEngine.Find(context.Background(), &p2Find)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -234,7 +235,7 @@ func TestProcessors(t *testing.T) {
 
 	// test find map processors
 	var p2FindMap = make(map[int64]*ProcessorsStruct)
-	err = testEngine.Find(&p2FindMap)
+	err = testEngine.Find(context.Background(), &p2FindMap)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -288,7 +289,7 @@ func TestProcessors(t *testing.T) {
 
 	p = p2 // reset
 
-	_, err = testEngine.Before(b4UpdateFunc).After(afterUpdateFunc).Update(p)
+	_, err = testEngine.Before(b4UpdateFunc).After(afterUpdateFunc).Update(context.Background(), p)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -308,7 +309,7 @@ func TestProcessors(t *testing.T) {
 	}
 
 	p2 = &ProcessorsStruct{}
-	_, err = testEngine.ID(p.Id).Get(p2)
+	_, err = testEngine.ID(p.Id).Get(context.Background(), p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -352,7 +353,7 @@ func TestProcessors(t *testing.T) {
 	}
 
 	p = p2 // reset
-	_, err = testEngine.Before(b4DeleteFunc).After(afterDeleteFunc).Delete(p)
+	_, err = testEngine.Before(b4DeleteFunc).After(afterDeleteFunc).Delete(context.Background(), p)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -376,7 +377,7 @@ func TestProcessors(t *testing.T) {
 	pslice := make([]*ProcessorsStruct, 0)
 	pslice = append(pslice, &ProcessorsStruct{})
 	pslice = append(pslice, &ProcessorsStruct{})
-	cnt, err := testEngine.Before(b4InsertFunc).After(afterInsertFunc).Insert(&pslice)
+	cnt, err := testEngine.Before(b4InsertFunc).After(afterInsertFunc).Insert(context.Background(), &pslice)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -402,7 +403,7 @@ func TestProcessors(t *testing.T) {
 
 	for _, elem := range pslice {
 		p = &ProcessorsStruct{}
-		_, err = testEngine.ID(elem.Id).Get(p)
+		_, err = testEngine.ID(elem.Id).Get(context.Background(), p)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -433,13 +434,13 @@ func TestProcessors(t *testing.T) {
 func TestProcessorsTx(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.DropTables(&ProcessorsStruct{})
+	err := testEngine.DropTables(context.Background(), &ProcessorsStruct{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.CreateTables(&ProcessorsStruct{})
+	err = testEngine.CreateTables(context.Background(), &ProcessorsStruct{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -469,7 +470,7 @@ func TestProcessorsTx(t *testing.T) {
 			t.Error(errors.New("cast to ProcessorsStruct failed, how can this be!?"))
 		}
 	}
-	_, err = session.Before(b4InsertFunc).After(afterInsertFunc).Insert(p)
+	_, err = session.Before(b4InsertFunc).After(afterInsertFunc).Insert(context.Background(), p)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -508,7 +509,7 @@ func TestProcessorsTx(t *testing.T) {
 	}
 	session.Close()
 	p2 := &ProcessorsStruct{}
-	_, err = testEngine.ID(p.Id).Get(p2)
+	_, err = testEngine.ID(p.Id).Get(context.Background(), p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -530,7 +531,7 @@ func TestProcessorsTx(t *testing.T) {
 	}
 
 	p = &ProcessorsStruct{}
-	_, err = session.Before(b4InsertFunc).After(afterInsertFunc).Insert(p)
+	_, err = session.Before(b4InsertFunc).After(afterInsertFunc).Insert(context.Background(), p)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -569,7 +570,7 @@ func TestProcessorsTx(t *testing.T) {
 	}
 	session.Close()
 	p2 = &ProcessorsStruct{}
-	_, err = testEngine.ID(p.Id).Get(p2)
+	_, err = testEngine.ID(p.Id).Get(context.Background(), p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -616,7 +617,7 @@ func TestProcessorsTx(t *testing.T) {
 
 	p = p2 // reset
 
-	_, err = session.ID(insertedId).Before(b4UpdateFunc).After(afterUpdateFunc).Update(p)
+	_, err = session.ID(insertedId).Before(b4UpdateFunc).After(afterUpdateFunc).Update(context.Background(), p)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -656,7 +657,7 @@ func TestProcessorsTx(t *testing.T) {
 	session.Close()
 
 	p2 = &ProcessorsStruct{}
-	_, err = testEngine.ID(insertedId).Get(p2)
+	_, err = testEngine.ID(insertedId).Get(context.Background(), p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -686,7 +687,7 @@ func TestProcessorsTx(t *testing.T) {
 
 	p = &ProcessorsStruct{Id: insertedId}
 
-	_, err = session.Update(p)
+	_, err = session.Update(context.Background(), p)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -729,7 +730,7 @@ func TestProcessorsTx(t *testing.T) {
 
 	p = &ProcessorsStruct{}
 
-	_, err = session.ID(insertedId).Before(b4UpdateFunc).After(afterUpdateFunc).Update(p)
+	_, err = session.ID(insertedId).Before(b4UpdateFunc).After(afterUpdateFunc).Update(context.Background(), p)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -767,7 +768,7 @@ func TestProcessorsTx(t *testing.T) {
 	}
 	session.Close()
 	p2 = &ProcessorsStruct{}
-	_, err = testEngine.ID(insertedId).Get(p2)
+	_, err = testEngine.ID(insertedId).Get(context.Background(), p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -813,7 +814,7 @@ func TestProcessorsTx(t *testing.T) {
 
 	p = &ProcessorsStruct{} // reset
 
-	_, err = session.ID(insertedId).Before(b4DeleteFunc).After(afterDeleteFunc).Delete(p)
+	_, err = session.ID(insertedId).Before(b4DeleteFunc).After(afterDeleteFunc).Delete(context.Background(), p)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -852,7 +853,7 @@ func TestProcessorsTx(t *testing.T) {
 	session.Close()
 
 	p2 = &ProcessorsStruct{}
-	_, err = testEngine.ID(insertedId).Get(p2)
+	_, err = testEngine.ID(insertedId).Get(context.Background(), p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -882,7 +883,7 @@ func TestProcessorsTx(t *testing.T) {
 
 	p = &ProcessorsStruct{}
 
-	_, err = session.ID(insertedId).Before(b4DeleteFunc).After(afterDeleteFunc).Delete(p)
+	_, err = session.ID(insertedId).Before(b4DeleteFunc).After(afterDeleteFunc).Delete(context.Background(), p)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -930,7 +931,7 @@ func TestProcessorsTx(t *testing.T) {
 
 	p = &ProcessorsStruct{Id: insertedId}
 	fmt.Println("delete")
-	_, err = session.Delete(p)
+	_, err = session.Delete(context.Background(), p)
 
 	if err != nil {
 		t.Error(err)
@@ -979,7 +980,7 @@ type AfterLoadStructB struct {
 }
 
 func (s *AfterLoadStructB) AfterLoad(session *Session) {
-	has, err := session.ID(s.AId).NoAutoCondition().Get(&s.A)
+	has, err := session.ID(s.AId).NoAutoCondition().Get(context.Background(), &s.A)
 	if err != nil {
 		s.Err = err
 		return
@@ -997,18 +998,18 @@ func TestAfterLoadProcessor(t *testing.T) {
 	var a = AfterLoadStructA{
 		Content: "testa",
 	}
-	_, err := testEngine.Insert(&a)
+	_, err := testEngine.Insert(context.Background(), &a)
 	assert.NoError(t, err)
 
 	var b = AfterLoadStructB{
 		Content: "testb",
 		AId:     a.Id,
 	}
-	_, err = testEngine.Insert(&b)
+	_, err = testEngine.Insert(context.Background(), &b)
 	assert.NoError(t, err)
 
 	var b2 AfterLoadStructB
-	has, err := testEngine.ID(b.Id).Get(&b2)
+	has, err := testEngine.ID(b.Id).Get(context.Background(), &b2)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, a.Id, b2.A.Id)
@@ -1016,11 +1017,11 @@ func TestAfterLoadProcessor(t *testing.T) {
 	assert.NoError(t, b2.Err)
 
 	b.Id = 0
-	_, err = testEngine.Insert(&b)
+	_, err = testEngine.Insert(context.Background(), &b)
 	assert.NoError(t, err)
 
 	var bs []AfterLoadStructB
-	err = testEngine.Find(&bs)
+	err = testEngine.Find(context.Background(), &bs)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(bs))
 	for i := 0; i < len(bs); i++ {
@@ -1045,6 +1046,6 @@ func TestAfterInsert(t *testing.T) {
 
 	assertSync(t, new(AfterInsertStruct))
 
-	_, err := testEngine.Insert(&AfterInsertStruct{})
+	_, err := testEngine.Insert(context.Background(), &AfterInsertStruct{})
 	assert.NoError(t, err)
 }

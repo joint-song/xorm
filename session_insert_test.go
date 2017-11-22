@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -23,10 +24,10 @@ func TestInsertOne(t *testing.T) {
 		Created time.Time `xorm:"created"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(Test)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(Test)))
 
 	data := Test{Msg: "hi"}
-	_, err := testEngine.InsertOne(data)
+	_, err := testEngine.InsertOne(context.Background(), data)
 	assert.NoError(t, err)
 }
 
@@ -38,7 +39,7 @@ func TestInsertMulti(t *testing.T) {
 		Name string `xorm:"varchar(255)"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(TestMulti)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(TestMulti)))
 
 	num, err := insertMultiDatas(1,
 		append([]TestMulti{}, TestMulti{1, "test1"}, TestMulti{2, "test2"}, TestMulti{3, "test3"}))
@@ -62,7 +63,7 @@ func insertMultiDatas(step int, datas interface{}) (num int64, err error) {
 
 	if err = callbackLooper(datas, step,
 		func(innerDatas interface{}) error {
-			n, e := session.InsertMulti(innerDatas)
+			n, e := session.InsertMulti(context.Background(), innerDatas)
 			if e != nil {
 				return e
 			}
@@ -115,10 +116,10 @@ func TestInsertOneIfPkIsPoint(t *testing.T) {
 		Created *time.Time `xorm:"created"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(TestPoint)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(TestPoint)))
 	msg := "hi"
 	data := TestPoint{Msg: &msg}
-	_, err := testEngine.InsertOne(&data)
+	_, err := testEngine.InsertOne(context.Background(), &data)
 	assert.NoError(t, err)
 }
 
@@ -131,10 +132,10 @@ func TestInsertOneIfPkIsPointRename(t *testing.T) {
 		Created *time.Time `xorm:"created"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(TestPoint2)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(TestPoint2)))
 	msg := "hi"
 	data := TestPoint2{Msg: &msg}
-	_, err := testEngine.InsertOne(&data)
+	_, err := testEngine.InsertOne(context.Background(), &data)
 	assert.NoError(t, err)
 }
 
@@ -144,7 +145,7 @@ func TestInsert(t *testing.T) {
 
 	user := Userinfo{0, "xiaolunwen", "dev", "lunny", time.Now(),
 		Userdetail{Id: 1}, 1.78, []byte{1, 2, 3}, true}
-	cnt, err := testEngine.Insert(&user)
+	cnt, err := testEngine.Insert(context.Background(), &user)
 	fmt.Println(user.Uid)
 	if err != nil {
 		t.Error(err)
@@ -163,7 +164,7 @@ func TestInsert(t *testing.T) {
 	}
 
 	user.Uid = 0
-	cnt, err = testEngine.Insert(&user)
+	cnt, err = testEngine.Insert(context.Background(), &user)
 	if err == nil {
 		err = errors.New("insert failed but no return error")
 		t.Error(err)
@@ -185,7 +186,7 @@ func TestInsertAutoIncr(t *testing.T) {
 	// auto increment insert
 	user := Userinfo{Username: "xiaolunwen2", Departname: "dev", Alias: "lunny", Created: time.Now(),
 		Detail: Userdetail{Id: 1}, Height: 1.78, Avatar: []byte{1, 2, 3}, IsMan: true}
-	cnt, err := testEngine.Insert(&user)
+	cnt, err := testEngine.Insert(context.Background(), &user)
 	fmt.Println(user.Uid)
 	if err != nil {
 		t.Error(err)
@@ -213,18 +214,18 @@ func TestInsertDefault(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	di := new(DefaultInsert)
-	err := testEngine.Sync2(di)
+	err := testEngine.Sync2(context.Background(), di)
 	if err != nil {
 		t.Error(err)
 	}
 
 	var di2 = DefaultInsert{Name: "test"}
-	_, err = testEngine.Omit(testEngine.GetColumnMapper().Obj2Table("Status")).Insert(&di2)
+	_, err = testEngine.Omit(testEngine.GetColumnMapper().Obj2Table("Status")).Insert(context.Background(), &di2)
 	if err != nil {
 		t.Error(err)
 	}
 
-	has, err := testEngine.Desc("(id)").Get(di)
+	has, err := testEngine.Desc("(id)").Get(context.Background(), di)
 	if err != nil {
 		t.Error(err)
 	}
@@ -261,18 +262,18 @@ func TestInsertDefault2(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	di := new(DefaultInsert2)
-	err := testEngine.Sync2(di)
+	err := testEngine.Sync2(context.Background(), di)
 	if err != nil {
 		t.Error(err)
 	}
 
 	var di2 = DefaultInsert2{Name: "test"}
-	_, err = testEngine.Omit(testEngine.GetColumnMapper().Obj2Table("CheckTime")).Insert(&di2)
+	_, err = testEngine.Omit(testEngine.GetColumnMapper().Obj2Table("CheckTime")).Insert(context.Background(), &di2)
 	if err != nil {
 		t.Error(err)
 	}
 
-	has, err := testEngine.Desc("(id)").Get(di)
+	has, err := testEngine.Desc("(id)").Get(context.Background(), di)
 	if err != nil {
 		t.Error(err)
 	}
@@ -282,7 +283,7 @@ func TestInsertDefault2(t *testing.T) {
 		panic(err)
 	}
 
-	has, err = testEngine.NoAutoCondition().Desc("(id)").Get(&di2)
+	has, err = testEngine.NoAutoCondition().Desc("(id)").Get(context.Background(), &di2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -345,17 +346,17 @@ func TestInsertCreated(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	di := new(CreatedInsert)
-	err := testEngine.Sync2(di)
+	err := testEngine.Sync2(context.Background(), di)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ci := &CreatedInsert{}
-	_, err = testEngine.Insert(ci)
+	_, err = testEngine.Insert(context.Background(), ci)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	has, err := testEngine.Desc("(id)").Get(di)
+	has, err := testEngine.Desc("(id)").Get(context.Background(), di)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -368,16 +369,16 @@ func TestInsertCreated(t *testing.T) {
 	fmt.Println("ci:", ci, "di:", di)
 
 	di2 := new(CreatedInsert2)
-	err = testEngine.Sync2(di2)
+	err = testEngine.Sync2(context.Background(), di2)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ci2 := &CreatedInsert2{}
-	_, err = testEngine.Insert(ci2)
+	_, err = testEngine.Insert(context.Background(), ci2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	has, err = testEngine.Desc("(id)").Get(di2)
+	has, err = testEngine.Desc("(id)").Get(context.Background(), di2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -390,16 +391,16 @@ func TestInsertCreated(t *testing.T) {
 	fmt.Println("ci2:", ci2, "di2:", di2)
 
 	di3 := new(CreatedInsert3)
-	err = testEngine.Sync2(di3)
+	err = testEngine.Sync2(context.Background(), di3)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ci3 := &CreatedInsert3{}
-	_, err = testEngine.Insert(ci3)
+	_, err = testEngine.Insert(context.Background(), ci3)
 	if err != nil {
 		t.Fatal(err)
 	}
-	has, err = testEngine.Desc("(id)").Get(di3)
+	has, err = testEngine.Desc("(id)").Get(context.Background(), di3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -412,16 +413,16 @@ func TestInsertCreated(t *testing.T) {
 	fmt.Println("ci3:", ci3, "di3:", di3)
 
 	di4 := new(CreatedInsert4)
-	err = testEngine.Sync2(di4)
+	err = testEngine.Sync2(context.Background(), di4)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ci4 := &CreatedInsert4{}
-	_, err = testEngine.Insert(ci4)
+	_, err = testEngine.Insert(context.Background(), ci4)
 	if err != nil {
 		t.Fatal(err)
 	}
-	has, err = testEngine.Desc("(id)").Get(di4)
+	has, err = testEngine.Desc("(id)").Get(context.Background(), di4)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -434,16 +435,16 @@ func TestInsertCreated(t *testing.T) {
 	fmt.Println("ci4:", ci4, "di4:", di4)
 
 	di5 := new(CreatedInsert5)
-	err = testEngine.Sync2(di5)
+	err = testEngine.Sync2(context.Background(), di5)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ci5 := &CreatedInsert5{}
-	_, err = testEngine.Insert(ci5)
+	_, err = testEngine.Insert(context.Background(), ci5)
 	if err != nil {
 		t.Fatal(err)
 	}
-	has, err = testEngine.Desc("(id)").Get(di5)
+	has, err = testEngine.Desc("(id)").Get(context.Background(), di5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -456,18 +457,18 @@ func TestInsertCreated(t *testing.T) {
 	fmt.Println("ci5:", ci5, "di5:", di5)
 
 	di6 := new(CreatedInsert6)
-	err = testEngine.Sync2(di6)
+	err = testEngine.Sync2(context.Background(), di6)
 	if err != nil {
 		t.Fatal(err)
 	}
 	oldTime := time.Now().Add(-time.Hour)
 	ci6 := &CreatedInsert6{Created: oldTime}
-	_, err = testEngine.Insert(ci6)
+	_, err = testEngine.Insert(context.Background(), ci6)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	has, err = testEngine.Desc("(id)").Get(di6)
+	has, err = testEngine.Desc("(id)").Get(context.Background(), di6)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -519,7 +520,7 @@ func TestDefaultTime3(t *testing.T) {
 		Cuser:     "userId",
 		Muser:     "userId",
 	}
-	cnt, err := testEngine.Omit("end_time").InsertOne(prepareTask)
+	cnt, err := testEngine.Omit("end_time").InsertOne(context.Background(), prepareTask)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 }
@@ -533,16 +534,16 @@ func TestCreatedJsonTime(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	di5 := new(MyJsonTime)
-	err := testEngine.Sync2(di5)
+	err := testEngine.Sync2(context.Background(), di5)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ci5 := &MyJsonTime{}
-	_, err = testEngine.Insert(ci5)
+	_, err = testEngine.Insert(context.Background(), ci5)
 	if err != nil {
 		t.Fatal(err)
 	}
-	has, err := testEngine.Desc("(id)").Get(di5)
+	has, err := testEngine.Desc("(id)").Get(context.Background(), di5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -555,7 +556,7 @@ func TestCreatedJsonTime(t *testing.T) {
 	fmt.Println("ci5:", ci5, "di5:", di5)
 
 	var dis = make([]MyJsonTime, 0)
-	err = testEngine.Find(&dis)
+	err = testEngine.Find(context.Background(), &dis)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -572,7 +573,7 @@ func TestInsertMulti2(t *testing.T) {
 		{Username: "xlw11", Departname: "dev", Alias: "lunny2", Created: time.Now()},
 		{Username: "xlw22", Departname: "dev", Alias: "lunny3", Created: time.Now()},
 	}
-	cnt, err := testEngine.Insert(&users)
+	cnt, err := testEngine.Insert(context.Background(), &users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -591,7 +592,7 @@ func TestInsertMulti2(t *testing.T) {
 		&Userinfo{Username: "1xlw22", Departname: "dev", Alias: "lunny3", Created: time.Now()},
 	}
 
-	cnt, err = testEngine.Insert(&users2)
+	cnt, err = testEngine.Insert(context.Background(), &users2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -612,7 +613,7 @@ func TestInsertTwoTable(t *testing.T) {
 	userdetail := Userdetail{ /*Id: 1, */ Intro: "I'm a very beautiful women.", Profile: "sfsaf"}
 	userinfo := Userinfo{Username: "xlw3", Departname: "dev", Alias: "lunny4", Created: time.Now(), Detail: userdetail}
 
-	cnt, err := testEngine.Insert(&userinfo, &userdetail)
+	cnt, err := testEngine.Insert(context.Background(), &userinfo, &userdetail)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -646,17 +647,17 @@ func TestInsertCreatedInt64(t *testing.T) {
 		Created int64  `xorm:"created"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(TestCreatedInt64)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(TestCreatedInt64)))
 
 	data := TestCreatedInt64{Msg: "hi"}
 	now := time.Now()
-	cnt, err := testEngine.Insert(&data)
+	cnt, err := testEngine.Insert(context.Background(), &data)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 	assert.True(t, now.Unix() <= data.Created)
 
 	var data2 TestCreatedInt64
-	has, err := testEngine.Get(&data2)
+	has, err := testEngine.Get(context.Background(), &data2)
 	assert.NoError(t, err)
 	assert.True(t, has)
 

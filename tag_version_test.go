@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -23,20 +24,20 @@ type VersionS struct {
 func TestVersion1(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.DropTables(new(VersionS))
+	err := testEngine.DropTables(context.Background(), new(VersionS))
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.CreateTables(new(VersionS))
+	err = testEngine.CreateTables(context.Background(), new(VersionS))
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	ver := &VersionS{Name: "sfsfdsfds"}
-	_, err = testEngine.Insert(ver)
+	_, err = testEngine.Insert(context.Background(), ver)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -49,7 +50,7 @@ func TestVersion1(t *testing.T) {
 	}
 
 	newVer := new(VersionS)
-	has, err := testEngine.ID(ver.Id).Get(newVer)
+	has, err := testEngine.ID(ver.Id).Get(context.Background(), newVer)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -67,7 +68,7 @@ func TestVersion1(t *testing.T) {
 	}
 
 	newVer.Name = "-------"
-	_, err = testEngine.ID(ver.Id).Update(newVer)
+	_, err = testEngine.ID(ver.Id).Update(context.Background(), newVer)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -78,7 +79,7 @@ func TestVersion1(t *testing.T) {
 	}
 
 	newVer = new(VersionS)
-	has, err = testEngine.ID(ver.Id).Get(newVer)
+	has, err = testEngine.ID(ver.Id).Get(context.Background(), newVer)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -94,13 +95,13 @@ func TestVersion1(t *testing.T) {
 func TestVersion2(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.DropTables(new(VersionS))
+	err := testEngine.DropTables(context.Background(), new(VersionS))
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.CreateTables(new(VersionS))
+	err = testEngine.CreateTables(context.Background(), new(VersionS))
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -110,7 +111,7 @@ func TestVersion2(t *testing.T) {
 		{Name: "sfsfdsfds"},
 		{Name: "xxxxx"},
 	}
-	_, err = testEngine.Insert(vers)
+	_, err = testEngine.Insert(context.Background(), vers)
 	if err != nil {
 		t.Error(err)
 		panic(err)

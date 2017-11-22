@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -15,7 +16,7 @@ import (
 )
 
 // Insert insert one or more beans
-func (session *Session) Insert(beans ...interface{}) (int64, error) {
+func (session *Session) Insert(ctx context.Context, beans ...interface{}) (int64, error) {
 	var affected int64
 	var err error
 
@@ -29,14 +30,14 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 			size := sliceValue.Len()
 			if size > 0 {
 				if session.engine.SupportInsertMany() {
-					cnt, err := session.innerInsertMulti(bean)
+					cnt, err := session.innerInsertMulti(ctx, bean)
 					if err != nil {
 						return affected, err
 					}
 					affected += cnt
 				} else {
 					for i := 0; i < size; i++ {
-						cnt, err := session.innerInsert(sliceValue.Index(i).Interface())
+						cnt, err := session.innerInsert(ctx, sliceValue.Index(i).Interface())
 						if err != nil {
 							return affected, err
 						}
@@ -45,7 +46,7 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 				}
 			}
 		} else {
-			cnt, err := session.innerInsert(bean)
+			cnt, err := session.innerInsert(ctx, bean)
 			if err != nil {
 				return affected, err
 			}
@@ -56,7 +57,7 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 	return affected, err
 }
 
-func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error) {
+func (session *Session) innerInsertMulti(ctx context.Context, rowsSlicePtr interface{}) (int64, error) {
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
 	if sliceValue.Kind() != reflect.Slice {
 		return 0, errors.New("needs a pointer to a slice")
@@ -235,7 +236,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 			session.engine.QuoteStr(),
 			strings.Join(colMultiPlaces, "),("))
 	}
-	res, err := session.exec(statement, args...)
+	res, err := session.exec(ctx, statement, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -279,7 +280,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 }
 
 // InsertMulti insert multiple records
-func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
+func (session *Session) InsertMulti(ctx context.Context, rowsSlicePtr interface{}) (int64, error) {
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -294,10 +295,10 @@ func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 		return 0, nil
 	}
 
-	return session.innerInsertMulti(rowsSlicePtr)
+	return session.innerInsertMulti(ctx, rowsSlicePtr)
 }
 
-func (session *Session) innerInsert(bean interface{}) (int64, error) {
+func (session *Session) innerInsert(ctx context.Context, bean interface{}) (int64, error) {
 	if err := session.statement.setRefValue(rValue(bean)); err != nil {
 		return 0, err
 	}
@@ -395,7 +396,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	// for postgres, many of them didn't implement lastInsertId, so we should
 	// implemented it ourself.
 	if session.engine.dialect.DBType() == core.ORACLE && len(table.AutoIncrement) > 0 {
-		res, err := session.queryBytes("select seq_atable.currval from dual", args...)
+		res, err := session.queryBytes(ctx, "select seq_atable.currval from dual", args...)
 		if err != nil {
 			return 0, err
 		}
@@ -440,7 +441,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	} else if session.engine.dialect.DBType() == core.POSTGRES && len(table.AutoIncrement) > 0 {
 		//assert table.AutoIncrement != ""
 		sqlStr = sqlStr + " RETURNING " + session.engine.Quote(table.AutoIncrement)
-		res, err := session.queryBytes(sqlStr, args...)
+		res, err := session.queryBytes(ctx, sqlStr, args...)
 
 		if err != nil {
 			return 0, err
@@ -483,7 +484,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 
 		return 1, nil
 	} else {
-		res, err := session.exec(sqlStr, args...)
+		res, err := session.exec(ctx, sqlStr, args...)
 		if err != nil {
 			return 0, err
 		}
@@ -531,12 +532,12 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 // InsertOne insert only one struct into database as a record.
 // The in parameter bean must a struct or a point to struct. The return
 // parameter is inserted and error
-func (session *Session) InsertOne(bean interface{}) (int64, error) {
+func (session *Session) InsertOne(ctx context.Context, bean interface{}) (int64, error) {
 	if session.isAutoClose {
 		defer session.Close()
 	}
 
-	return session.innerInsert(bean)
+	return session.innerInsert(ctx, bean)
 }
 
 func (session *Session) cacheInsert(table *core.Table, tables ...string) error {

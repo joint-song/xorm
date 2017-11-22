@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"reflect"
@@ -12,7 +13,7 @@ import (
 
 // Count counts the records. bean's non-empty fields
 // are conditions.
-func (session *Session) Count(bean ...interface{}) (int64, error) {
+func (session *Session) Count(ctx context.Context, bean ...interface{}) (int64, error) {
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -31,7 +32,7 @@ func (session *Session) Count(bean ...interface{}) (int64, error) {
 	}
 
 	var total int64
-	err = session.queryRow(sqlStr, args...).Scan(&total)
+	err = session.queryRow(ctx, sqlStr, args...).Scan(&total)
 	if err == sql.ErrNoRows || err == nil {
 		return total, nil
 	}
@@ -40,7 +41,7 @@ func (session *Session) Count(bean ...interface{}) (int64, error) {
 }
 
 // sum call sum some column. bean's non-empty fields are conditions.
-func (session *Session) sum(res interface{}, bean interface{}, columnNames ...string) error {
+func (session *Session) sum(ctx context.Context, res interface{}, bean interface{}, columnNames ...string) error {
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -65,9 +66,9 @@ func (session *Session) sum(res interface{}, bean interface{}, columnNames ...st
 	}
 
 	if isSlice {
-		err = session.queryRow(sqlStr, args...).ScanSlice(res)
+		err = session.queryRow(ctx, sqlStr, args...).ScanSlice(res)
 	} else {
-		err = session.queryRow(sqlStr, args...).Scan(res)
+		err = session.queryRow(ctx, sqlStr, args...).Scan(res)
 	}
 	if err == sql.ErrNoRows || err == nil {
 		return nil
@@ -76,23 +77,23 @@ func (session *Session) sum(res interface{}, bean interface{}, columnNames ...st
 }
 
 // Sum call sum some column. bean's non-empty fields are conditions.
-func (session *Session) Sum(bean interface{}, columnName string) (res float64, err error) {
-	return res, session.sum(&res, bean, columnName)
+func (session *Session) Sum(ctx context.Context, bean interface{}, columnName string) (res float64, err error) {
+	return res, session.sum(ctx, &res, bean, columnName)
 }
 
 // SumInt call sum some column. bean's non-empty fields are conditions.
-func (session *Session) SumInt(bean interface{}, columnName string) (res int64, err error) {
-	return res, session.sum(&res, bean, columnName)
+func (session *Session) SumInt(ctx context.Context, bean interface{}, columnName string) (res int64, err error) {
+	return res, session.sum(ctx, &res, bean, columnName)
 }
 
 // Sums call sum some columns. bean's non-empty fields are conditions.
-func (session *Session) Sums(bean interface{}, columnNames ...string) ([]float64, error) {
+func (session *Session) Sums(ctx context.Context, bean interface{}, columnNames ...string) ([]float64, error) {
 	var res = make([]float64, len(columnNames), len(columnNames))
-	return res, session.sum(&res, bean, columnNames...)
+	return res, session.sum(ctx, &res, bean, columnNames...)
 }
 
 // SumsInt sum specify columns and return as []int64 instead of []float64
-func (session *Session) SumsInt(bean interface{}, columnNames ...string) ([]int64, error) {
+func (session *Session) SumsInt(ctx context.Context, bean interface{}, columnNames ...string) ([]int64, error) {
 	var res = make([]int64, len(columnNames), len(columnNames))
-	return res, session.sum(&res, bean, columnNames...)
+	return res, session.sum(ctx, &res, bean, columnNames...)
 }

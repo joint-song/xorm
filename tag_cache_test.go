@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,7 +19,7 @@ func TestCacheTag(t *testing.T) {
 		Name string
 	}
 
-	assert.NoError(t, testEngine.CreateTables(&CacheDomain{}))
+	assert.NoError(t, testEngine.CreateTables(context.Background(), &CacheDomain{}))
 
 	table := testEngine.TableInfo(&CacheDomain{})
 	assert.True(t, table.Cacher != nil)
@@ -32,7 +33,7 @@ func TestNoCacheTag(t *testing.T) {
 		Name string
 	}
 
-	assert.NoError(t, testEngine.CreateTables(&NoCacheDomain{}))
+	assert.NoError(t, testEngine.CreateTables(context.Background(), &NoCacheDomain{}))
 
 	table := testEngine.TableInfo(&NoCacheDomain{})
 	assert.True(t, table.Cacher == nil)

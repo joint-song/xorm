@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"strconv"
 	"testing"
 
@@ -19,15 +20,15 @@ func TestExecAndQuery(t *testing.T) {
 		Name string
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UserinfoQuery)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(UserinfoQuery)))
 
-	res, err := testEngine.Exec("INSERT INTO `userinfo_query` (uid, name) VALUES (?, ?)", 1, "user")
+	res, err := testEngine.Exec(context.Background(), "INSERT INTO `userinfo_query` (uid, name) VALUES (?, ?)", 1, "user")
 	assert.NoError(t, err)
 	cnt, err := res.RowsAffected()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	results, err := testEngine.Query("select * from userinfo_query")
+	results, err := testEngine.Query(context.Background(), "select * from userinfo_query")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(results))
 	id, err := strconv.Atoi(string(results[0]["uid"]))

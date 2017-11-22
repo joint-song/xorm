@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"errors"
 	"reflect"
 	"strconv"
@@ -14,14 +15,14 @@ import (
 
 // Get retrieve one record from database, bean's non-empty fields
 // will be as conditions
-func (session *Session) Get(bean interface{}) (bool, error) {
+func (session *Session) Get(ctx context.Context, bean interface{}) (bool, error) {
 	if session.isAutoClose {
 		defer session.Close()
 	}
-	return session.get(bean)
+	return session.get(ctx, bean)
 }
 
-func (session *Session) get(bean interface{}) (bool, error) {
+func (session *Session) get(ctx context.Context, bean interface{}) (bool, error) {
 	beanValue := reflect.ValueOf(bean)
 	if beanValue.Kind() != reflect.Ptr {
 		return false, errors.New("needs a pointer to a value")
@@ -58,18 +59,18 @@ func (session *Session) get(bean interface{}) (bool, error) {
 	if session.canCache() && beanValue.Elem().Kind() == reflect.Struct {
 		if cacher := session.engine.getCacher2(table); cacher != nil &&
 			!session.statement.unscoped {
-			has, err := session.cacheGet(bean, sqlStr, args...)
+			has, err := session.cacheGet(ctx, bean, sqlStr, args...)
 			if err != ErrCacheFailed {
 				return has, err
 			}
 		}
 	}
 
-	return session.nocacheGet(beanValue.Elem().Kind(), table, bean, sqlStr, args...)
+	return session.nocacheGet(ctx, beanValue.Elem().Kind(), table, bean, sqlStr, args...)
 }
 
-func (session *Session) nocacheGet(beanKind reflect.Kind, table *core.Table, bean interface{}, sqlStr string, args ...interface{}) (bool, error) {
-	rows, err := session.queryRows(sqlStr, args...)
+func (session *Session) nocacheGet(ctx context.Context, beanKind reflect.Kind, table *core.Table, bean interface{}, sqlStr string, args ...interface{}) (bool, error) {
+	rows, err := session.queryRows(ctx, sqlStr, args...)
 	if err != nil {
 		return false, err
 	}
@@ -95,7 +96,7 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, table *core.Table, bea
 		rows.Close()
 
 		dataStruct := rValue(bean)
-		_, err = session.slice2Bean(scanResults, fields, bean, &dataStruct, table)
+		_, err = session.slice2Bean(ctx, scanResults, fields, bean, &dataStruct, table)
 		if err != nil {
 			return true, err
 		}
@@ -112,7 +113,7 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, table *core.Table, bea
 	return true, err
 }
 
-func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interface{}) (has bool, err error) {
+func (session *Session) cacheGet(ctx context.Context, bean interface{}, sqlStr string, args ...interface{}) (has bool, err error) {
 	// if has no reftable, then don't use cache currently
 	if !session.canCache() {
 		return false, ErrCacheFailed
@@ -133,7 +134,7 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 	ids, err := core.GetCacheSql(cacher, tableName, newsql, args)
 	if err != nil {
 		var res = make([]string, len(table.PrimaryKeys))
-		rows, err := session.NoCache().queryRows(newsql, args...)
+		rows, err := session.NoCache().queryRows(ctx, newsql, args...)
 		if err != nil {
 			return false, err
 		}
@@ -184,7 +185,7 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 		cacheBean := cacher.GetBean(tableName, sid)
 		if cacheBean == nil {
 			cacheBean = bean
-			has, err = session.nocacheGet(reflect.Struct, table, cacheBean, sqlStr, args...)
+			has, err = session.nocacheGet(ctx, reflect.Struct, table, cacheBean, sqlStr, args...)
 			if err != nil || !has {
 				return has, err
 			}

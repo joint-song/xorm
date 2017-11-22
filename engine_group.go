@@ -5,6 +5,8 @@
 package xorm
 
 import (
+	"context"
+
 	"github.com/go-xorm/core"
 )
 
@@ -78,13 +80,13 @@ func (eg *EngineGroup) Master() *Engine {
 }
 
 // Ping tests if database is alive
-func (eg *EngineGroup) Ping() error {
-	if err := eg.Engine.Ping(); err != nil {
+func (eg *EngineGroup) Ping(ctx context.Context) error {
+	if err := eg.Engine.Ping(ctx); err != nil {
 		return err
 	}
 
 	for _, slave := range eg.slaves {
-		if err := slave.Ping(); err != nil {
+		if err := slave.Ping(ctx); err != nil {
 			return err
 		}
 	}

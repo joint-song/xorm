@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -19,34 +20,34 @@ func TestDelete(t *testing.T) {
 		IsMan bool
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UserinfoDelete)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(UserinfoDelete)))
 
 	user := UserinfoDelete{Uid: 1}
-	cnt, err := testEngine.Insert(&user)
+	cnt, err := testEngine.Insert(context.Background(), &user)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	cnt, err = testEngine.Delete(&UserinfoDelete{Uid: user.Uid})
+	cnt, err = testEngine.Delete(context.Background(), &UserinfoDelete{Uid: user.Uid})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	user.Uid = 0
 	user.IsMan = true
-	has, err := testEngine.ID(1).Get(&user)
+	has, err := testEngine.ID(1).Get(context.Background(), &user)
 	assert.NoError(t, err)
 	assert.False(t, has)
 
-	cnt, err = testEngine.Insert(&user)
+	cnt, err = testEngine.Insert(context.Background(), &user)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	cnt, err = testEngine.Where("id=?", user.Uid).Delete(&UserinfoDelete{})
+	cnt, err = testEngine.Where("id=?", user.Uid).Delete(context.Background(), &UserinfoDelete{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	user.Uid = 0
 	user.IsMan = true
-	has, err = testEngine.ID(2).Get(&user)
+	has, err = testEngine.ID(2).Get(context.Background(), &user)
 	assert.NoError(t, err)
 	assert.False(t, has)
 }
@@ -60,80 +61,80 @@ func TestDeleted(t *testing.T) {
 		DeletedAt time.Time `xorm:"deleted"`
 	}
 
-	err := testEngine.DropTables(&Deleted{})
+	err := testEngine.DropTables(context.Background(), &Deleted{})
 	assert.NoError(t, err)
 
-	err = testEngine.CreateTables(&Deleted{})
+	err = testEngine.CreateTables(context.Background(), &Deleted{})
 	assert.NoError(t, err)
 
-	_, err = testEngine.InsertOne(&Deleted{Id: 1, Name: "11111"})
+	_, err = testEngine.InsertOne(context.Background(), &Deleted{Id: 1, Name: "11111"})
 	assert.NoError(t, err)
 
-	_, err = testEngine.InsertOne(&Deleted{Id: 2, Name: "22222"})
+	_, err = testEngine.InsertOne(context.Background(), &Deleted{Id: 2, Name: "22222"})
 	assert.NoError(t, err)
 
-	_, err = testEngine.InsertOne(&Deleted{Id: 3, Name: "33333"})
+	_, err = testEngine.InsertOne(context.Background(), &Deleted{Id: 3, Name: "33333"})
 	assert.NoError(t, err)
 
 	// Test normal Find()
 	var records1 []Deleted
-	err = testEngine.Where("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").Find(&records1, &Deleted{})
+	err = testEngine.Where("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").Find(context.Background(), &records1, &Deleted{})
 	assert.EqualValues(t, 3, len(records1))
 
 	// Test normal Get()
 	record1 := &Deleted{}
-	has, err := testEngine.ID(1).Get(record1)
+	has, err := testEngine.ID(1).Get(context.Background(), record1)
 	assert.NoError(t, err)
 	assert.True(t, has)
 
 	// Test Delete() with deleted
-	affected, err := testEngine.ID(1).Delete(&Deleted{})
+	affected, err := testEngine.ID(1).Delete(context.Background(), &Deleted{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affected)
 
-	has, err = testEngine.ID(1).Get(&Deleted{})
+	has, err = testEngine.ID(1).Get(context.Background(), &Deleted{})
 	assert.NoError(t, err)
 	assert.False(t, has)
 
 	var records2 []Deleted
-	err = testEngine.Where("`" + testEngine.GetColumnMapper().Obj2Table("Id") + "` > 0").Find(&records2)
+	err = testEngine.Where("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").Find(context.Background(), &records2)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(records2))
 
 	// Test no rows affected after Delete() again.
-	affected, err = testEngine.ID(1).Delete(&Deleted{})
+	affected, err = testEngine.ID(1).Delete(context.Background(), &Deleted{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, affected)
 
 	// Deleted.DeletedAt must not be updated.
-	affected, err = testEngine.ID(2).Update(&Deleted{Name: "2", DeletedAt: time.Now()})
+	affected, err = testEngine.ID(2).Update(context.Background(), &Deleted{Name: "2", DeletedAt: time.Now()})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affected)
 
 	record2 := &Deleted{}
-	has, err = testEngine.ID(2).Get(record2)
+	has, err = testEngine.ID(2).Get(context.Background(), record2)
 	assert.NoError(t, err)
 	assert.True(t, record2.DeletedAt.IsZero())
 
 	// Test find all records whatever `deleted`.
 	var unscopedRecords1 []Deleted
-	err = testEngine.Unscoped().Where("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").Find(&unscopedRecords1, &Deleted{})
+	err = testEngine.Unscoped().Where("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").Find(context.Background(), &unscopedRecords1, &Deleted{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, len(unscopedRecords1))
 
 	// Delete() must really delete a record with Unscoped()
-	affected, err = testEngine.Unscoped().ID(1).Delete(&Deleted{})
+	affected, err = testEngine.Unscoped().ID(1).Delete(context.Background(), &Deleted{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affected)
 
 	var unscopedRecords2 []Deleted
-	err = testEngine.Unscoped().Where("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").Find(&unscopedRecords2, &Deleted{})
+	err = testEngine.Unscoped().Where("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").Find(context.Background(), &unscopedRecords2, &Deleted{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(unscopedRecords2))
 
 	var records3 []Deleted
 	err = testEngine.Where("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").And("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"`> 1").
-		Or("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` = ?", 3).Find(&records3)
+		Or("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` = ?", 3).Find(context.Background(), &records3)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(records3))
 }
@@ -149,19 +150,19 @@ func TestCacheDelete(t *testing.T) {
 		Id int64
 	}
 
-	err := testEngine.CreateTables(&CacheDeleteStruct{})
+	err := testEngine.CreateTables(context.Background(), &CacheDeleteStruct{})
 	assert.NoError(t, err)
 
-	_, err = testEngine.Insert(&CacheDeleteStruct{})
+	_, err = testEngine.Insert(context.Background(), &CacheDeleteStruct{})
 	assert.NoError(t, err)
 
-	aff, err := testEngine.Delete(&CacheDeleteStruct{
+	aff, err := testEngine.Delete(context.Background(), &CacheDeleteStruct{
 		Id: 1,
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, aff, 1)
 
-	aff, err = testEngine.Unscoped().Delete(&CacheDeleteStruct{
+	aff, err = testEngine.Unscoped().Delete(context.Background(), &CacheDeleteStruct{
 		Id: 1,
 	})
 	assert.NoError(t, err)
@@ -181,7 +182,7 @@ func TestUnscopeDelete(t *testing.T) {
 
 	assertSync(t, new(UnscopeDeleteStruct))
 
-	cnt, err := testEngine.Insert(&UnscopeDeleteStruct{
+	cnt, err := testEngine.Insert(context.Background(), &UnscopeDeleteStruct{
 		Name: "test",
 	})
 	assert.NoError(t, err)
@@ -189,34 +190,34 @@ func TestUnscopeDelete(t *testing.T) {
 
 	var nowUnix = time.Now().Unix()
 	var s UnscopeDeleteStruct
-	cnt, err = testEngine.ID(1).Delete(&s)
+	cnt, err = testEngine.ID(1).Delete(context.Background(), &s)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 	assert.EqualValues(t, nowUnix, s.DeletedAt.Unix())
 
 	var s1 UnscopeDeleteStruct
-	has, err := testEngine.ID(1).Get(&s1)
+	has, err := testEngine.ID(1).Get(context.Background(), &s1)
 	assert.NoError(t, err)
 	assert.False(t, has)
 
 	var s2 UnscopeDeleteStruct
-	has, err = testEngine.ID(1).Unscoped().Get(&s2)
+	has, err = testEngine.ID(1).Unscoped().Get(context.Background(), &s2)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, "test", s2.Name)
 	assert.EqualValues(t, nowUnix, s2.DeletedAt.Unix())
 
-	cnt, err = testEngine.ID(1).Unscoped().Delete(new(UnscopeDeleteStruct))
+	cnt, err = testEngine.ID(1).Unscoped().Delete(context.Background(), new(UnscopeDeleteStruct))
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	var s3 UnscopeDeleteStruct
-	has, err = testEngine.ID(1).Get(&s3)
+	has, err = testEngine.ID(1).Get(context.Background(), &s3)
 	assert.NoError(t, err)
 	assert.False(t, has)
 
 	var s4 UnscopeDeleteStruct
-	has, err = testEngine.ID(1).Unscoped().Get(&s4)
+	has, err = testEngine.ID(1).Unscoped().Get(context.Background(), &s4)
 	assert.NoError(t, err)
 	assert.False(t, has)
 }

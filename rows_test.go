@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,22 +19,22 @@ func TestRows(t *testing.T) {
 		IsMan bool
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UserRows)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(UserRows)))
 
-	cnt, err := testEngine.Insert(&UserRows{
+	cnt, err := testEngine.Insert(context.Background(), &UserRows{
 		IsMan: true,
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	rows, err := testEngine.Rows(new(UserRows))
+	rows, err := testEngine.Rows(context.Background(), new(UserRows))
 	assert.NoError(t, err)
 	defer rows.Close()
 
 	cnt = 0
 	user := new(UserRows)
 	for rows.Next() {
-		err = rows.Scan(user)
+		err = rows.Scan(context.Background(), user)
 		assert.NoError(t, err)
 		cnt++
 	}
@@ -42,25 +43,25 @@ func TestRows(t *testing.T) {
 	sess := testEngine.NewSession()
 	defer sess.Close()
 
-	rows1, err := sess.Prepare().Rows(new(UserRows))
+	rows1, err := sess.Prepare().Rows(context.Background(), new(UserRows))
 	assert.NoError(t, err)
 	defer rows1.Close()
 
 	cnt = 0
 	for rows1.Next() {
-		err = rows1.Scan(user)
+		err = rows1.Scan(context.Background(), user)
 		assert.NoError(t, err)
 		cnt++
 	}
 	assert.EqualValues(t, 1, cnt)
 
-	rows2, err := testEngine.SQL("SELECT * FROM user_rows").Rows(new(UserRows))
+	rows2, err := testEngine.SQL("SELECT * FROM user_rows").Rows(context.Background(), new(UserRows))
 	assert.NoError(t, err)
 	defer rows2.Close()
 
 	cnt = 0
 	for rows2.Next() {
-		err = rows2.Scan(user)
+		err = rows2.Scan(context.Background(), user)
 		assert.NoError(t, err)
 		cnt++
 	}

@@ -4,30 +4,33 @@
 
 package xorm
 
-import "reflect"
+import (
+	"context"
+	"reflect"
+)
 
 // IterFunc only use by Iterate
 type IterFunc func(idx int, bean interface{}) error
 
 // Rows return sql.Rows compatible Rows obj, as a forward Iterator object for iterating record by record, bean's non-empty fields
 // are conditions.
-func (session *Session) Rows(bean interface{}) (*Rows, error) {
-	return newRows(session, bean)
+func (session *Session) Rows(ctx context.Context, bean interface{}) (*Rows, error) {
+	return newRows(ctx, session, bean)
 }
 
 // Iterate record by record handle records from table, condiBeans's non-empty fields
 // are conditions. beans could be []Struct, []*Struct, map[int64]Struct
 // map[int64]*Struct
-func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
+func (session *Session) Iterate(ctx context.Context, bean interface{}, fun IterFunc) error {
 	if session.isAutoClose {
 		defer session.Close()
 	}
 
 	if session.statement.bufferSize > 0 {
-		return session.bufferIterate(bean, fun)
+		return session.bufferIterate(ctx, bean, fun)
 	}
 
-	rows, err := session.Rows(bean)
+	rows, err := session.Rows(ctx, bean)
 	if err != nil {
 		return err
 	}
@@ -36,7 +39,7 @@ func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
 	i := 0
 	for rows.Next() {
 		b := reflect.New(rows.beanType).Interface()
-		err = rows.Scan(b)
+		err = rows.Scan(ctx, b)
 		if err != nil {
 			return err
 		}
@@ -55,7 +58,7 @@ func (session *Session) BufferSize(size int) *Session {
 	return session
 }
 
-func (session *Session) bufferIterate(bean interface{}, fun IterFunc) error {
+func (session *Session) bufferIterate(ctx context.Context, bean interface{}, fun IterFunc) error {
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -71,7 +74,7 @@ func (session *Session) bufferIterate(bean interface{}, fun IterFunc) error {
 	var idx = 0
 	for {
 		slice := reflect.New(sliceType)
-		if err := session.Limit(bufferSize, start).find(slice.Interface(), bean); err != nil {
+		if err := session.Limit(bufferSize, start).find(ctx, slice.Interface(), bean); err != nil {
 			return err
 		}
 

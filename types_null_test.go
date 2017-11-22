@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"database/sql"
 	"database/sql/driver"
 	"errors"
@@ -59,7 +60,7 @@ func (m CustomStruct) Value() (driver.Value, error) {
 func TestCreateNullStructTable(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.CreateTables(new(NullType))
+	err := testEngine.CreateTables(context.Background(), new(NullType))
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -69,7 +70,7 @@ func TestCreateNullStructTable(t *testing.T) {
 func TestDropNullStructTable(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.DropTables(new(NullType))
+	err := testEngine.DropTables(context.Background(), new(NullType))
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -82,7 +83,7 @@ func TestNullStructInsert(t *testing.T) {
 
 	if true {
 		item := new(NullType)
-		_, err := testEngine.Insert(item)
+		_, err := testEngine.Insert(context.Background(), item)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -102,7 +103,7 @@ func TestNullStructInsert(t *testing.T) {
 			Height: sql.NullFloat64{1.72, true},
 			IsMan:  sql.NullBool{true, true},
 		}
-		_, err := testEngine.Insert(&item)
+		_, err := testEngine.Insert(context.Background(), &item)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -130,7 +131,7 @@ func TestNullStructInsert(t *testing.T) {
 			items = append(items, item)
 		}
 
-		_, err := testEngine.Insert(&items)
+		_, err := testEngine.Insert(context.Background(), &items)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -143,7 +144,7 @@ func TestNullStructUpdate(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(NullType))
 
-	_, err := testEngine.Insert([]NullType{
+	_, err := testEngine.Insert(context.Background(), []NullType{
 		{
 			Name: sql.NullString{
 				String: "name1",
@@ -176,7 +177,7 @@ func TestNullStructUpdate(t *testing.T) {
 		item.Age = sql.NullInt64{23, true}
 		item.Height = sql.NullFloat64{0, false} // update to NULL
 
-		affected, err := testEngine.ID(2).Cols("age", "height", "is_man").Update(item)
+		affected, err := testEngine.ID(2).Cols("age", "height", "is_man").Update(context.Background(), item)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -191,7 +192,7 @@ func TestNullStructUpdate(t *testing.T) {
 	if true { // 测试In update
 		item := new(NullType)
 		item.Age = sql.NullInt64{23, true}
-		affected, err := testEngine.In("id", 3, 4).Cols("age", "height", "is_man").Update(item)
+		affected, err := testEngine.In("id", 3, 4).Cols("age", "height", "is_man").Update(context.Background(), item)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -209,7 +210,7 @@ func TestNullStructUpdate(t *testing.T) {
 		item.IsMan = sql.NullBool{true, true}
 		item.Age = sql.NullInt64{34, true}
 
-		_, err := testEngine.Where("age > ?", 34).Update(item)
+		_, err := testEngine.Where("age > ?", 34).Update(context.Background(), item)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -224,7 +225,7 @@ func TestNullStructUpdate(t *testing.T) {
 			// IsMan:  sql.NullBool{true, true},
 		}
 
-		_, err := testEngine.AllCols().ID(6).Update(item)
+		_, err := testEngine.AllCols().ID(6).Update(context.Background(), item)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -238,7 +239,7 @@ func TestNullStructFind(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(NullType))
 
-	_, err := testEngine.Insert([]NullType{
+	_, err := testEngine.Insert(context.Background(), []NullType{
 		{
 			Name: sql.NullString{
 				String: "name1",
@@ -268,7 +269,7 @@ func TestNullStructFind(t *testing.T) {
 
 	if true {
 		item := new(NullType)
-		has, err := testEngine.ID(1).Get(item)
+		has, err := testEngine.ID(1).Get(context.Background(), item)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -290,7 +291,7 @@ func TestNullStructFind(t *testing.T) {
 		item := new(NullType)
 		item.Id = 2
 
-		has, err := testEngine.Get(item)
+		has, err := testEngine.Get(context.Background(), item)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -305,7 +306,7 @@ func TestNullStructFind(t *testing.T) {
 	if true {
 		item := make([]NullType, 0)
 
-		err := testEngine.ID(2).Find(&item)
+		err := testEngine.ID(2).Find(context.Background(), &item)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -317,7 +318,7 @@ func TestNullStructFind(t *testing.T) {
 	if true {
 		item := make([]NullType, 0)
 
-		err := testEngine.Asc("age").Find(&item)
+		err := testEngine.Asc("age").Find(context.Background(), &item)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -334,7 +335,7 @@ func TestNullStructIterate(t *testing.T) {
 	assertSync(t, new(NullType))
 
 	if true {
-		err := testEngine.Where("age IS NOT NULL").OrderBy("age").Iterate(new(NullType),
+		err := testEngine.Where("age IS NOT NULL").OrderBy("age").Iterate(context.Background(), new(NullType),
 			func(i int, bean interface{}) error {
 				nultype := bean.(*NullType)
 				fmt.Println(i, nultype)
@@ -353,7 +354,7 @@ func TestNullStructCount(t *testing.T) {
 
 	if true {
 		item := new(NullType)
-		total, err := testEngine.Where("age IS NOT NULL").Count(item)
+		total, err := testEngine.Where("age IS NOT NULL").Count(context.Background(), item)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -367,7 +368,7 @@ func TestNullStructRows(t *testing.T) {
 	assertSync(t, new(NullType))
 
 	item := new(NullType)
-	rows, err := testEngine.Where("id > ?", 1).Rows(item)
+	rows, err := testEngine.Where("id > ?", 1).Rows(context.Background(), item)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -375,7 +376,7 @@ func TestNullStructRows(t *testing.T) {
 	defer rows.Close()
 
 	for rows.Next() {
-		err = rows.Scan(item)
+		err = rows.Scan(context.Background(), item)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -390,13 +391,13 @@ func TestNullStructDelete(t *testing.T) {
 
 	item := new(NullType)
 
-	_, err := testEngine.ID(1).Delete(item)
+	_, err := testEngine.ID(1).Delete(context.Background(), item)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	_, err = testEngine.Where("id > ?", 1).Delete(item)
+	_, err = testEngine.Where("id > ?", 1).Delete(context.Background(), item)
 	if err != nil {
 		t.Error(err)
 		panic(err)

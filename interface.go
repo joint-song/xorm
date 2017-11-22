@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"database/sql"
 	"reflect"
 	"time"
@@ -19,47 +20,47 @@ type Interface interface {
 	Asc(colNames ...string) *Session
 	BufferSize(size int) *Session
 	Cols(columns ...string) *Session
-	Count(...interface{}) (int64, error)
-	CreateIndexes(bean interface{}) error
-	CreateUniques(bean interface{}) error
+	Count(context.Context, ...interface{}) (int64, error)
+	CreateIndexes(ctx context.Context, bean interface{}) error
+	CreateUniques(ctx context.Context, bean interface{}) error
 	Decr(column string, arg ...interface{}) *Session
 	Desc(...string) *Session
-	Delete(interface{}) (int64, error)
+	Delete(context.Context, interface{}) (int64, error)
 	Distinct(columns ...string) *Session
-	DropIndexes(bean interface{}) error
-	Exec(string, ...interface{}) (sql.Result, error)
-	Exist(bean ...interface{}) (bool, error)
-	Find(interface{}, ...interface{}) error
-	Get(interface{}) (bool, error)
+	DropIndexes(ctx context.Context, bean interface{}) error
+	Exec(context.Context, string, ...interface{}) (sql.Result, error)
+	Exist(ctx context.Context, bean ...interface{}) (bool, error)
+	Find(context.Context, interface{}, ...interface{}) error
+	Get(context.Context, interface{}) (bool, error)
 	GroupBy(keys string) *Session
 	ID(interface{}) *Session
 	In(string, ...interface{}) *Session
 	Incr(column string, arg ...interface{}) *Session
-	Insert(...interface{}) (int64, error)
-	InsertOne(interface{}) (int64, error)
-	IsTableEmpty(bean interface{}) (bool, error)
-	IsTableExist(beanOrTableName interface{}) (bool, error)
-	Iterate(interface{}, IterFunc) error
+	Insert(context.Context, ...interface{}) (int64, error)
+	InsertOne(context.Context, interface{}) (int64, error)
+	IsTableEmpty(ctx context.Context, bean interface{}) (bool, error)
+	IsTableExist(ctx context.Context, beanOrTableName interface{}) (bool, error)
+	Iterate(context.Context, interface{}, IterFunc) error
 	Limit(int, ...int) *Session
 	NoAutoCondition(...bool) *Session
 	NotIn(string, ...interface{}) *Session
 	Join(joinOperator string, tablename interface{}, condition string, args ...interface{}) *Session
 	Omit(columns ...string) *Session
 	OrderBy(order string) *Session
-	Ping() error
-	Query(sqlOrAgrs ...interface{}) (resultsSlice []map[string][]byte, err error)
-	QueryInterface(sqlorArgs ...interface{}) ([]map[string]interface{}, error)
-	QueryString(sqlorArgs ...interface{}) ([]map[string]string, error)
-	Rows(bean interface{}) (*Rows, error)
+	Ping(ctx context.Context) error
+	Query(ctx context.Context, sqlOrAgrs ...interface{}) (resultsSlice []map[string][]byte, err error)
+	QueryInterface(ctx context.Context, sqlorArgs ...interface{}) ([]map[string]interface{}, error)
+	QueryString(ctx context.Context, sqlorArgs ...interface{}) ([]map[string]string, error)
+	Rows(ctx context.Context, bean interface{}) (*Rows, error)
 	SetExpr(string, string) *Session
 	SQL(interface{}, ...interface{}) *Session
-	Sum(bean interface{}, colName string) (float64, error)
-	SumInt(bean interface{}, colName string) (int64, error)
-	Sums(bean interface{}, colNames ...string) ([]float64, error)
-	SumsInt(bean interface{}, colNames ...string) ([]int64, error)
+	Sum(ctx context.Context, bean interface{}, colName string) (float64, error)
+	SumInt(ctx context.Context, bean interface{}, colName string) (int64, error)
+	Sums(ctx context.Context, bean interface{}, colNames ...string) ([]float64, error)
+	SumsInt(ctx context.Context, bean interface{}, colNames ...string) ([]int64, error)
 	Table(tableNameOrBean interface{}) *Session
 	Unscoped() *Session
-	Update(bean interface{}, condiBeans ...interface{}) (int64, error)
+	Update(ctx context.Context, bean interface{}, condiBeans ...interface{}) (int64, error)
 	UseBool(...string) *Session
 	Where(interface{}, ...interface{}) *Session
 }
@@ -70,11 +71,11 @@ type EngineInterface interface {
 
 	Before(func(interface{})) *Session
 	Charset(charset string) *Session
-	CreateTables(...interface{}) error
-	DBMetas() ([]*core.Table, error)
+	CreateTables(context.Context, ...interface{}) error
+	DBMetas(context.Context) ([]*core.Table, error)
 	Dialect() core.Dialect
-	DropTables(...interface{}) error
-	DumpAllToFile(fp string, tp ...core.DbType) error
+	DropTables(context.Context, ...interface{}) error
+	DumpAllToFile(ctx context.Context, fp string, tp ...core.DbType) error
 	GetColumnMapper() core.IMapper
 	GetDefaultCacher() core.Cacher
 	GetTableMapper() core.IMapper
@@ -89,8 +90,8 @@ type EngineInterface interface {
 	SetTZDatabase(tz *time.Location)
 	SetTZLocation(tz *time.Location)
 	ShowSQL(show ...bool)
-	Sync(...interface{}) error
-	Sync2(...interface{}) error
+	Sync(context.Context, ...interface{}) error
+	Sync2(context.Context, ...interface{}) error
 	StoreEngine(storeEngine string) *Session
 	TableInfo(bean interface{}) *Table
 	UnMapType(reflect.Type)

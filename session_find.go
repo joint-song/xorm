@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -22,14 +23,14 @@ const (
 // Find retrieve records from table, condiBeans's non-empty fields
 // are conditions. beans could be []Struct, []*Struct, map[int64]Struct
 // map[int64]*Struct
-func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{}) error {
+func (session *Session) Find(ctx context.Context, rowsSlicePtr interface{}, condiBean ...interface{}) error {
 	if session.isAutoClose {
 		defer session.Close()
 	}
-	return session.find(rowsSlicePtr, condiBean...)
+	return session.find(ctx, rowsSlicePtr, condiBean...)
 }
 
-func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{}) error {
+func (session *Session) find(ctx context.Context, rowsSlicePtr interface{}, condiBean ...interface{}) error {
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
 	if sliceValue.Kind() != reflect.Slice && sliceValue.Kind() != reflect.Map {
 		return errors.New("needs a pointer to a slice or a map")
@@ -146,7 +147,7 @@ func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{})
 		if cacher := session.engine.getCacher2(table); cacher != nil &&
 			!session.statement.IsDistinct &&
 			!session.statement.unscoped {
-			err = session.cacheFind(sliceElementType, sqlStr, rowsSlicePtr, args...)
+			err = session.cacheFind(ctx, sliceElementType, sqlStr, rowsSlicePtr, args...)
 			if err != ErrCacheFailed {
 				return err
 			}
@@ -155,11 +156,11 @@ func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{})
 		}
 	}
 
-	return session.noCacheFind(table, sliceValue, sqlStr, args...)
+	return session.noCacheFind(ctx, table, sliceValue, sqlStr, args...)
 }
 
-func (session *Session) noCacheFind(table *core.Table, containerValue reflect.Value, sqlStr string, args ...interface{}) error {
-	rows, err := session.queryRows(sqlStr, args...)
+func (session *Session) noCacheFind(ctx context.Context, table *core.Table, containerValue reflect.Value, sqlStr string, args ...interface{}) error {
+	rows, err := session.queryRows(ctx, sqlStr, args...)
 	if err != nil {
 		return err
 	}
@@ -239,7 +240,7 @@ func (session *Session) noCacheFind(table *core.Table, containerValue reflect.Va
 		if err != nil {
 			return err
 		}
-		err = session.rows2Beans(rows, fields, tb, newElemFunc, containerValueSetFunc)
+		err = session.rows2Beans(ctx, rows, fields, tb, newElemFunc, containerValueSetFunc)
 		rows.Close()
 		if err != nil {
 			return err
@@ -281,7 +282,7 @@ func convertPKToValue(table *core.Table, dst interface{}, pk core.PK) error {
 	return nil
 }
 
-func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr interface{}, args ...interface{}) (err error) {
+func (session *Session) cacheFind(ctx context.Context, t reflect.Type, sqlStr string, rowsSlicePtr interface{}, args ...interface{}) (err error) {
 	if !session.canCache() ||
 		indexNoCase(sqlStr, "having") != -1 ||
 		indexNoCase(sqlStr, "group by") != -1 {
@@ -302,7 +303,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 	cacher := session.engine.getCacher2(table)
 	ids, err := core.GetCacheSql(cacher, tableName, newsql, args)
 	if err != nil {
-		rows, err := session.queryRows(newsql, args...)
+		rows, err := session.queryRows(ctx, newsql, args...)
 		if err != nil {
 			return err
 		}
@@ -394,7 +395,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 			}
 		}
 
-		err = session.NoCache().Table(tableName).find(beans)
+		err = session.NoCache().Table(tableName).find(ctx, beans)
 		if err != nil {
 			return err
 		}

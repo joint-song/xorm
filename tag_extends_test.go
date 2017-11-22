@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -59,60 +60,60 @@ type UserAndDetail struct {
 func TestExtends(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.DropTables(&tempUser2{})
+	err := testEngine.DropTables(context.Background(), &tempUser2{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.CreateTables(&tempUser2{})
+	err = testEngine.CreateTables(context.Background(), &tempUser2{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	tu := &tempUser2{tempUser{0, "extends"}, "dev depart"}
-	_, err = testEngine.Insert(tu)
+	_, err = testEngine.Insert(context.Background(), tu)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	tu2 := &tempUser2{}
-	_, err = testEngine.Get(tu2)
+	_, err = testEngine.Get(context.Background(), tu2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	tu3 := &tempUser2{tempUser{0, "extends update"}, ""}
-	_, err = testEngine.ID(tu2.TempUser.Id).Update(tu3)
+	_, err = testEngine.ID(tu2.TempUser.Id).Update(context.Background(), tu3)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.DropTables(&tempUser4{})
+	err = testEngine.DropTables(context.Background(), &tempUser4{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.CreateTables(&tempUser4{})
+	err = testEngine.CreateTables(context.Background(), &tempUser4{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	tu8 := &tempUser4{tempUser2{tempUser{0, "extends"}, "dev depart"}}
-	_, err = testEngine.Insert(tu8)
+	_, err = testEngine.Insert(context.Background(), tu8)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	tu9 := &tempUser4{}
-	_, err = testEngine.Get(tu9)
+	_, err = testEngine.Get(context.Background(), tu9)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -124,33 +125,33 @@ func TestExtends(t *testing.T) {
 	}
 
 	tu10 := &tempUser4{tempUser2{tempUser{0, "extends update"}, ""}}
-	_, err = testEngine.ID(tu9.TempUser2.TempUser.Id).Update(tu10)
+	_, err = testEngine.ID(tu9.TempUser2.TempUser.Id).Update(context.Background(), tu10)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.DropTables(&tempUser3{})
+	err = testEngine.DropTables(context.Background(), &tempUser3{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.CreateTables(&tempUser3{})
+	err = testEngine.CreateTables(context.Background(), &tempUser3{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	tu4 := &tempUser3{&tempUser{0, "extends"}, "dev depart"}
-	_, err = testEngine.Insert(tu4)
+	_, err = testEngine.Insert(context.Background(), tu4)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	tu5 := &tempUser3{}
-	_, err = testEngine.Get(tu5)
+	_, err = testEngine.Get(context.Background(), tu5)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -168,14 +169,14 @@ func TestExtends(t *testing.T) {
 	}
 
 	tu6 := &tempUser3{&tempUser{0, "extends update"}, ""}
-	_, err = testEngine.ID(tu5.Temp.Id).Update(tu6)
+	_, err = testEngine.ID(tu5.Temp.Id).Update(context.Background(), tu6)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	users := make([]tempUser3, 0)
-	err = testEngine.Find(&users)
+	err = testEngine.Find(context.Background(), &users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -191,10 +192,10 @@ func TestExtends(t *testing.T) {
 	detail := Userdetail{
 		Intro: "I'm in China",
 	}
-	_, err = testEngine.Insert(&detail)
+	_, err = testEngine.Insert(context.Background(), &detail)
 	assert.NoError(t, err)
 
-	_, err = testEngine.Insert(&Userinfo{
+	_, err = testEngine.Insert(context.Background(), &Userinfo{
 		Username: "lunny",
 		Detail:   detail,
 	})
@@ -208,7 +209,7 @@ func TestExtends(t *testing.T) {
 	udid := "detail_id"
 	sql := fmt.Sprintf("select * from %s, %s where %s.%s = %s.%s",
 		qt(ui), qt(ud), qt(ui), qt(udid), qt(ud), qt(uiid))
-	b, err := testEngine.SQL(sql).NoCascade().Get(&info)
+	b, err := testEngine.SQL(sql).NoCascade().Get(context.Background(), &info)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -229,7 +230,7 @@ func TestExtends(t *testing.T) {
 	var info2 UserAndDetail
 	b, err = testEngine.Table(&Userinfo{}).
 		Join("LEFT", qt(ud), qt(ui)+"."+qt("detail_id")+" = "+qt(ud)+"."+qt(uiid)).
-		NoCascade().Get(&info2)
+		NoCascade().Get(context.Background(), &info2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -251,7 +252,7 @@ func TestExtends(t *testing.T) {
 	err = testEngine.Table(&Userinfo{}).
 		Join("LEFT", qt(ud), qt(ui)+"."+qt("detail_id")+" = "+qt(ud)+"."+qt(uiid)).
 		NoCascade().
-		Find(&infos2)
+		Find(context.Background(), &infos2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -299,13 +300,13 @@ type MessageExtend4 struct {
 func TestExtends2(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.DropTables(&Message{}, &MessageUser{}, &MessageType{})
+	err := testEngine.DropTables(context.Background(), &Message{}, &MessageUser{}, &MessageType{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.CreateTables(&Message{}, &MessageUser{}, &MessageType{})
+	err = testEngine.CreateTables(context.Background(), &Message{}, &MessageUser{}, &MessageType{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -314,7 +315,7 @@ func TestExtends2(t *testing.T) {
 	var sender = MessageUser{Name: "sender"}
 	var receiver = MessageUser{Name: "receiver"}
 	var msgtype = MessageType{Name: "type"}
-	_, err = testEngine.Insert(&sender, &receiver, &msgtype)
+	_, err = testEngine.Insert(context.Background(), &sender, &receiver, &msgtype)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -330,11 +331,11 @@ func TestExtends2(t *testing.T) {
 		ToUid:   receiver.Id,
 	}
 	if testEngine.Dialect().DBType() == core.MSSQL {
-		_, err = testEngine.Exec("SET IDENTITY_INSERT message ON")
+		_, err = testEngine.Exec(context.Background(), "SET IDENTITY_INSERT message ON")
 		assert.NoError(t, err)
 	}
 
-	_, err = testEngine.Insert(&msg)
+	_, err = testEngine.Insert(context.Background(), &msg)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -349,7 +350,7 @@ func TestExtends2(t *testing.T) {
 	err = testEngine.Table(msgTableName).Join("LEFT", []string{userTableName, "sender"}, "`sender`.`"+mapper("Id")+"`=`"+msgTableName+"`.`"+mapper("Uid")+"`").
 		Join("LEFT", []string{userTableName, "receiver"}, "`receiver`.`"+mapper("Id")+"`=`"+msgTableName+"`.`"+mapper("ToUid")+"`").
 		Join("LEFT", []string{typeTableName, "type"}, "`type`.`"+mapper("Id")+"`=`"+msgTableName+"`.`"+mapper("Id")+"`").
-		Find(&list)
+		Find(context.Background(), &list)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -371,13 +372,13 @@ func TestExtends2(t *testing.T) {
 func TestExtends3(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.DropTables(&Message{}, &MessageUser{}, &MessageType{})
+	err := testEngine.DropTables(context.Background(), &Message{}, &MessageUser{}, &MessageType{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.CreateTables(&Message{}, &MessageUser{}, &MessageType{})
+	err = testEngine.CreateTables(context.Background(), &Message{}, &MessageUser{}, &MessageType{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -386,7 +387,7 @@ func TestExtends3(t *testing.T) {
 	var sender = MessageUser{Name: "sender"}
 	var receiver = MessageUser{Name: "receiver"}
 	var msgtype = MessageType{Name: "type"}
-	_, err = testEngine.Insert(&sender, &receiver, &msgtype)
+	_, err = testEngine.Insert(context.Background(), &sender, &receiver, &msgtype)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -402,10 +403,10 @@ func TestExtends3(t *testing.T) {
 		ToUid:   receiver.Id,
 	}
 	if testEngine.Dialect().DBType() == core.MSSQL {
-		_, err = testEngine.Exec("SET IDENTITY_INSERT message ON")
+		_, err = testEngine.Exec(context.Background(), "SET IDENTITY_INSERT message ON")
 		assert.NoError(t, err)
 	}
-	_, err = testEngine.Insert(&msg)
+	_, err = testEngine.Insert(context.Background(), &msg)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -420,7 +421,7 @@ func TestExtends3(t *testing.T) {
 	err = testEngine.Table(msgTableName).Join("LEFT", []string{userTableName, "sender"}, "`sender`.`"+mapper("Id")+"`=`"+msgTableName+"`.`"+mapper("Uid")+"`").
 		Join("LEFT", []string{userTableName, "receiver"}, "`receiver`.`"+mapper("Id")+"`=`"+msgTableName+"`.`"+mapper("ToUid")+"`").
 		Join("LEFT", []string{typeTableName, "type"}, "`type`.`"+mapper("Id")+"`=`"+msgTableName+"`.`"+mapper("Id")+"`").
-		Find(&list)
+		Find(context.Background(), &list)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -460,13 +461,13 @@ func TestExtends3(t *testing.T) {
 func TestExtends4(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.DropTables(&Message{}, &MessageUser{}, &MessageType{})
+	err := testEngine.DropTables(context.Background(), &Message{}, &MessageUser{}, &MessageType{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.CreateTables(&Message{}, &MessageUser{}, &MessageType{})
+	err = testEngine.CreateTables(context.Background(), &Message{}, &MessageUser{}, &MessageType{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -474,7 +475,7 @@ func TestExtends4(t *testing.T) {
 
 	var sender = MessageUser{Name: "sender"}
 	var msgtype = MessageType{Name: "type"}
-	_, err = testEngine.Insert(&sender, &msgtype)
+	_, err = testEngine.Insert(context.Background(), &sender, &msgtype)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -489,10 +490,10 @@ func TestExtends4(t *testing.T) {
 		Uid:     sender.Id,
 	}
 	if testEngine.Dialect().DBType() == core.MSSQL {
-		_, err = testEngine.Exec("SET IDENTITY_INSERT message ON")
+		_, err = testEngine.Exec(context.Background(), "SET IDENTITY_INSERT message ON")
 		assert.NoError(t, err)
 	}
-	_, err = testEngine.Insert(&msg)
+	_, err = testEngine.Insert(context.Background(), &msg)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -506,7 +507,7 @@ func TestExtends4(t *testing.T) {
 	list := make([]MessageExtend4, 0)
 	err = testEngine.Table(msgTableName).Join("LEFT", userTableName, "`"+userTableName+"`.`"+mapper("Id")+"`=`"+msgTableName+"`.`"+mapper("Uid")+"`").
 		Join("LEFT", typeTableName, "`"+typeTableName+"`.`"+mapper("Id")+"`=`"+msgTableName+"`.`"+mapper("Id")+"`").
-		Find(&list)
+		Find(context.Background(), &list)
 	if err != nil {
 		t.Error(err)
 		panic(err)

@@ -1,6 +1,7 @@
 package migrate
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -82,20 +83,20 @@ func (m *Migrate) InitSchema(initSchema InitSchemaFunc) {
 }
 
 // Migrate executes all migrations that did not run yet.
-func (m *Migrate) Migrate() error {
-	if err := m.createMigrationTableIfNotExists(); err != nil {
+func (m *Migrate) Migrate(ctx context.Context) error {
+	if err := m.createMigrationTableIfNotExists(ctx); err != nil {
 		return err
 	}
 
-	if m.initSchema != nil && m.isFirstRun() {
-		if err := m.runInitSchema(); err != nil {
+	if m.initSchema != nil && m.isFirstRun(ctx) {
+		if err := m.runInitSchema(ctx); err != nil {
 			return err
 		}
 		return nil
 	}
 
 	for _, migration := range m.migrations {
-		if err := m.runMigration(migration); err != nil {
+		if err := m.runMigration(ctx, migration); err != nil {
 			return err
 		}
 	}
@@ -103,26 +104,26 @@ func (m *Migrate) Migrate() error {
 }
 
 // RollbackLast undo the last migration
-func (m *Migrate) RollbackLast() error {
+func (m *Migrate) RollbackLast(ctx context.Context) error {
 	if len(m.migrations) == 0 {
 		return ErrNoMigrationDefined
 	}
 
-	lastRunnedMigration, err := m.getLastRunnedMigration()
+	lastRunnedMigration, err := m.getLastRunnedMigration(ctx)
 	if err != nil {
 		return err
 	}
 
-	if err := m.RollbackMigration(lastRunnedMigration); err != nil {
+	if err := m.RollbackMigration(ctx, lastRunnedMigration); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (m *Migrate) getLastRunnedMigration() (*Migration, error) {
+func (m *Migrate) getLastRunnedMigration(ctx context.Context) (*Migration, error) {
 	for i := len(m.migrations) - 1; i >= 0; i-- {
 		migration := m.migrations[i]
-		if m.migrationDidRun(migration) {
+		if m.migrationDidRun(ctx, migration) {
 			return migration, nil
 		}
 	}
@@ -130,7 +131,7 @@ func (m *Migrate) getLastRunnedMigration() (*Migration, error) {
 }
 
 // RollbackMigration undo a migration.
-func (m *Migrate) RollbackMigration(mig *Migration) error {
+func (m *Migrate) RollbackMigration(ctx context.Context, mig *Migration) error {
 	if mig.Rollback == nil {
 		return ErrRollbackImpossible
 	}
@@ -140,19 +141,19 @@ func (m *Migrate) RollbackMigration(mig *Migration) error {
 	}
 
 	sql := fmt.Sprintf("DELETE FROM %s WHERE %s = ?", m.options.TableName, m.options.IDColumnName)
-	if _, err := m.db.Exec(sql, mig.ID); err != nil {
+	if _, err := m.db.Exec(ctx, sql, mig.ID); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (m *Migrate) runInitSchema() error {
+func (m *Migrate) runInitSchema(ctx context.Context) error {
 	if err := m.initSchema(m.db); err != nil {
 		return err
 	}
 
 	for _, migration := range m.migrations {
-		if err := m.insertMigration(migration.ID); err != nil {
+		if err := m.insertMigration(ctx, migration.ID); err != nil {
 			return err
 		}
 	}
@@ -160,25 +161,25 @@ func (m *Migrate) runInitSchema() error {
 	return nil
 }
 
-func (m *Migrate) runMigration(migration *Migration) error {
+func (m *Migrate) runMigration(ctx context.Context, migration *Migration) error {
 	if len(migration.ID) == 0 {
 		return ErrMissingID
 	}
 
-	if !m.migrationDidRun(migration) {
+	if !m.migrationDidRun(ctx, migration) {
 		if err := migration.Migrate(m.db); err != nil {
 			return err
 		}
 
-		if err := m.insertMigration(migration.ID); err != nil {
+		if err := m.insertMigration(ctx, migration.ID); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (m *Migrate) createMigrationTableIfNotExists() error {
-	exists, err := m.db.IsTableExist(m.options.TableName)
+func (m *Migrate) createMigrationTableIfNotExists(ctx context.Context) error {
+	exists, err := m.db.IsTableExist(ctx, m.options.TableName)
 	if err != nil {
 		return err
 	}
@@ -187,28 +188,28 @@ func (m *Migrate) createMigrationTableIfNotExists() error {
 	}
 
 	sql := fmt.Sprintf("CREATE TABLE %s (%s VARCHAR(255) PRIMARY KEY)", m.options.TableName, m.options.IDColumnName)
-	if _, err := m.db.Exec(sql); err != nil {
+	if _, err := m.db.Exec(ctx, sql); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (m *Migrate) migrationDidRun(mig *Migration) bool {
-	row := m.db.DB().QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE %s = ?", m.options.TableName, m.options.IDColumnName), mig.ID)
+func (m *Migrate) migrationDidRun(ctx context.Context, mig *Migration) bool {
+	row := m.db.DB().QueryRow(ctx, fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE %s = ?", m.options.TableName, m.options.IDColumnName), mig.ID)
 	var count int
 	row.Scan(&count)
 	return count > 0
 }
 
-func (m *Migrate) isFirstRun() bool {
-	row := m.db.DB().QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s", m.options.TableName))
+func (m *Migrate) isFirstRun(ctx context.Context) bool {
+	row := m.db.DB().QueryRow(ctx, fmt.Sprintf("SELECT COUNT(*) FROM %s", m.options.TableName))
 	var count int
 	row.Scan(&count)
 	return count == 0
 }
 
-func (m *Migrate) insertMigration(id string) error {
+func (m *Migrate) insertMigration(ctx context.Context, id string) error {
 	sql := fmt.Sprintf("INSERT INTO %s (%s) VALUES (?)", m.options.TableName, m.options.IDColumnName)
-	_, err := m.db.Exec(sql, id)
+	_, err := m.db.Exec(ctx, sql, id)
 	return err
 }

@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -15,45 +16,45 @@ import (
 )
 
 // Ping test if database is ok
-func (session *Session) Ping() error {
+func (session *Session) Ping(ctx context.Context) error {
 	if session.isAutoClose {
 		defer session.Close()
 	}
 
 	session.engine.logger.Infof("PING DATABASE %v", session.engine.DriverName())
-	return session.DB().Ping()
+	return session.DB().PingContext(ctx)
 }
 
 // CreateTable create a table according a bean
-func (session *Session) CreateTable(bean interface{}) error {
+func (session *Session) CreateTable(ctx context.Context, bean interface{}) error {
 	if session.isAutoClose {
 		defer session.Close()
 	}
 
-	return session.createTable(bean)
+	return session.createTable(ctx, bean)
 }
 
-func (session *Session) createTable(bean interface{}) error {
+func (session *Session) createTable(ctx context.Context, bean interface{}) error {
 	v := rValue(bean)
 	if err := session.statement.setRefValue(v); err != nil {
 		return err
 	}
 
 	sqlStr := session.statement.genCreateTableSQL()
-	_, err := session.exec(sqlStr)
+	_, err := session.exec(ctx, sqlStr)
 	return err
 }
 
 // CreateIndexes create indexes
-func (session *Session) CreateIndexes(bean interface{}) error {
+func (session *Session) CreateIndexes(ctx context.Context, bean interface{}) error {
 	if session.isAutoClose {
 		defer session.Close()
 	}
 
-	return session.createIndexes(bean)
+	return session.createIndexes(ctx, bean)
 }
 
-func (session *Session) createIndexes(bean interface{}) error {
+func (session *Session) createIndexes(ctx context.Context, bean interface{}) error {
 	v := rValue(bean)
 	if err := session.statement.setRefValue(v); err != nil {
 		return err
@@ -61,7 +62,7 @@ func (session *Session) createIndexes(bean interface{}) error {
 
 	sqls := session.statement.genIndexSQL()
 	for _, sqlStr := range sqls {
-		_, err := session.exec(sqlStr)
+		_, err := session.exec(ctx, sqlStr)
 		if err != nil {
 			return err
 		}
@@ -70,14 +71,14 @@ func (session *Session) createIndexes(bean interface{}) error {
 }
 
 // CreateUniques create uniques
-func (session *Session) CreateUniques(bean interface{}) error {
+func (session *Session) CreateUniques(ctx context.Context, bean interface{}) error {
 	if session.isAutoClose {
 		defer session.Close()
 	}
-	return session.createUniques(bean)
+	return session.createUniques(ctx, bean)
 }
 
-func (session *Session) createUniques(bean interface{}) error {
+func (session *Session) createUniques(ctx context.Context, bean interface{}) error {
 	v := rValue(bean)
 	if err := session.statement.setRefValue(v); err != nil {
 		return err
@@ -85,7 +86,7 @@ func (session *Session) createUniques(bean interface{}) error {
 
 	sqls := session.statement.genUniqueSQL()
 	for _, sqlStr := range sqls {
-		_, err := session.exec(sqlStr)
+		_, err := session.exec(ctx, sqlStr)
 		if err != nil {
 			return err
 		}
@@ -94,15 +95,15 @@ func (session *Session) createUniques(bean interface{}) error {
 }
 
 // DropIndexes drop indexes
-func (session *Session) DropIndexes(bean interface{}) error {
+func (session *Session) DropIndexes(ctx context.Context, bean interface{}) error {
 	if session.isAutoClose {
 		defer session.Close()
 	}
 
-	return session.dropIndexes(bean)
+	return session.dropIndexes(ctx, bean)
 }
 
-func (session *Session) dropIndexes(bean interface{}) error {
+func (session *Session) dropIndexes(ctx context.Context, bean interface{}) error {
 	v := rValue(bean)
 	if err := session.statement.setRefValue(v); err != nil {
 		return err
@@ -110,7 +111,7 @@ func (session *Session) dropIndexes(bean interface{}) error {
 
 	sqls := session.statement.genDelIndexSQL()
 	for _, sqlStr := range sqls {
-		_, err := session.exec(sqlStr)
+		_, err := session.exec(ctx, sqlStr)
 		if err != nil {
 			return err
 		}
@@ -119,15 +120,15 @@ func (session *Session) dropIndexes(bean interface{}) error {
 }
 
 // DropTable drop table will drop table if exist, if drop failed, it will return error
-func (session *Session) DropTable(beanOrTableName interface{}) error {
+func (session *Session) DropTable(ctx context.Context, beanOrTableName interface{}) error {
 	if session.isAutoClose {
 		defer session.Close()
 	}
 
-	return session.dropTable(beanOrTableName)
+	return session.dropTable(ctx, beanOrTableName)
 }
 
-func (session *Session) dropTable(beanOrTableName interface{}) error {
+func (session *Session) dropTable(ctx context.Context, beanOrTableName interface{}) error {
 	tableName, err := session.engine.tableName(beanOrTableName)
 	if err != nil {
 		return err
@@ -136,7 +137,7 @@ func (session *Session) dropTable(beanOrTableName interface{}) error {
 	var needDrop = true
 	if !session.engine.dialect.SupportDropIfExists() {
 		sqlStr, args := session.engine.dialect.TableCheckSql(tableName)
-		results, err := session.queryBytes(sqlStr, args...)
+		results, err := session.queryBytes(ctx, sqlStr, args...)
 		if err != nil {
 			return err
 		}
@@ -145,14 +146,14 @@ func (session *Session) dropTable(beanOrTableName interface{}) error {
 
 	if needDrop {
 		sqlStr := session.engine.Dialect().DropTableSql(tableName)
-		_, err = session.exec(sqlStr)
+		_, err = session.exec(ctx, sqlStr)
 		return err
 	}
 	return nil
 }
 
 // IsTableExist if a table is exist
-func (session *Session) IsTableExist(beanOrTableName interface{}) (bool, error) {
+func (session *Session) IsTableExist(ctx context.Context, beanOrTableName interface{}) (bool, error) {
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -162,17 +163,17 @@ func (session *Session) IsTableExist(beanOrTableName interface{}) (bool, error) 
 		return false, err
 	}
 
-	return session.isTableExist(tableName)
+	return session.isTableExist(ctx, tableName)
 }
 
-func (session *Session) isTableExist(tableName string) (bool, error) {
+func (session *Session) isTableExist(ctx context.Context, tableName string) (bool, error) {
 	sqlStr, args := session.engine.dialect.TableCheckSql(tableName)
-	results, err := session.queryBytes(sqlStr, args...)
+	results, err := session.queryBytes(ctx, sqlStr, args...)
 	return len(results) > 0, err
 }
 
 // IsTableEmpty if table have any records
-func (session *Session) IsTableEmpty(bean interface{}) (bool, error) {
+func (session *Session) IsTableEmpty(ctx context.Context, bean interface{}) (bool, error) {
 	v := rValue(bean)
 	t := v.Type()
 
@@ -180,18 +181,18 @@ func (session *Session) IsTableEmpty(bean interface{}) (bool, error) {
 		if session.isAutoClose {
 			defer session.Close()
 		}
-		return session.isTableEmpty(bean.(string))
+		return session.isTableEmpty(ctx, bean.(string))
 	} else if t.Kind() == reflect.Struct {
-		rows, err := session.Count(bean)
+		rows, err := session.Count(ctx, bean)
 		return rows == 0, err
 	}
 	return false, errors.New("bean should be a struct or struct's point")
 }
 
-func (session *Session) isTableEmpty(tableName string) (bool, error) {
+func (session *Session) isTableEmpty(ctx context.Context, tableName string) (bool, error) {
 	var total int64
 	sqlStr := fmt.Sprintf("select count(*) from %s", session.engine.Quote(tableName))
-	err := session.queryRow(sqlStr).Scan(&total)
+	err := session.queryRow(ctx, sqlStr).Scan(&total)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			err = nil
@@ -203,8 +204,8 @@ func (session *Session) isTableEmpty(tableName string) (bool, error) {
 }
 
 // find if index is exist according cols
-func (session *Session) isIndexExist2(tableName string, cols []string, unique bool) (bool, error) {
-	indexes, err := session.engine.dialect.GetIndexes(tableName)
+func (session *Session) isIndexExist2(ctx context.Context, tableName string, cols []string, unique bool) (bool, error) {
+	indexes, err := session.engine.dialect.GetIndexes(ctx, tableName)
 	if err != nil {
 		return false, err
 	}
@@ -220,29 +221,29 @@ func (session *Session) isIndexExist2(tableName string, cols []string, unique bo
 	return false, nil
 }
 
-func (session *Session) addColumn(colName string) error {
+func (session *Session) addColumn(ctx context.Context, colName string) error {
 	col := session.statement.RefTable.GetColumn(colName)
 	sql, args := session.statement.genAddColumnStr(col)
-	_, err := session.exec(sql, args...)
+	_, err := session.exec(ctx, sql, args...)
 	return err
 }
 
-func (session *Session) addIndex(tableName, idxName string) error {
+func (session *Session) addIndex(ctx context.Context, tableName, idxName string) error {
 	index := session.statement.RefTable.Indexes[idxName]
 	sqlStr := session.engine.dialect.CreateIndexSql(tableName, index)
-	_, err := session.exec(sqlStr)
+	_, err := session.exec(ctx, sqlStr)
 	return err
 }
 
-func (session *Session) addUnique(tableName, uqeName string) error {
+func (session *Session) addUnique(ctx context.Context, tableName, uqeName string) error {
 	index := session.statement.RefTable.Indexes[uqeName]
 	sqlStr := session.engine.dialect.CreateIndexSql(tableName, index)
-	_, err := session.exec(sqlStr)
+	_, err := session.exec(ctx, sqlStr)
 	return err
 }
 
 // Sync2 synchronize structs to database tables
-func (session *Session) Sync2(beans ...interface{}) error {
+func (session *Session) Sync2(ctx context.Context, beans ...interface{}) error {
 	engine := session.engine
 
 	if session.isAutoClose {
@@ -250,7 +251,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 		defer session.Close()
 	}
 
-	tables, err := engine.DBMetas()
+	tables, err := engine.DBMetas(ctx)
 	if err != nil {
 		return err
 	}
@@ -275,17 +276,17 @@ func (session *Session) Sync2(beans ...interface{}) error {
 		}
 
 		if oriTable == nil {
-			err = session.StoreEngine(session.statement.StoreEngine).createTable(bean)
+			err = session.StoreEngine(session.statement.StoreEngine).createTable(ctx, bean)
 			if err != nil {
 				return err
 			}
 
-			err = session.createUniques(bean)
+			err = session.createUniques(ctx, bean)
 			if err != nil {
 				return err
 			}
 
-			err = session.createIndexes(bean)
+			err = session.createIndexes(ctx, bean)
 			if err != nil {
 				return err
 			}
@@ -310,7 +311,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 								engine.dialect.DBType() == core.POSTGRES {
 								engine.logger.Infof("Table %s column %s change type from %s to %s\n",
 									tbName, col.Name, curType, expectedType)
-								_, err = session.exec(engine.dialect.ModifyColumnSql(table.Name, col))
+								_, err = session.exec(ctx, engine.dialect.ModifyColumnSql(table.Name, col))
 							} else {
 								engine.logger.Warnf("Table %s column %s db type is %s, struct type is %s\n",
 									tbName, col.Name, curType, expectedType)
@@ -320,7 +321,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 								if oriCol.Length < col.Length {
 									engine.logger.Infof("Table %s column %s change type from varchar(%d) to varchar(%d)\n",
 										tbName, col.Name, oriCol.Length, col.Length)
-									_, err = session.exec(engine.dialect.ModifyColumnSql(table.Name, col))
+									_, err = session.exec(ctx, engine.dialect.ModifyColumnSql(table.Name, col))
 								}
 							}
 						} else {
@@ -334,7 +335,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 							if oriCol.Length < col.Length {
 								engine.logger.Infof("Table %s column %s change type from varchar(%d) to varchar(%d)\n",
 									tbName, col.Name, oriCol.Length, col.Length)
-								_, err = session.exec(engine.dialect.ModifyColumnSql(table.Name, col))
+								_, err = session.exec(ctx, engine.dialect.ModifyColumnSql(table.Name, col))
 							}
 						}
 					}
@@ -349,7 +350,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 				} else {
 					session.statement.RefTable = table
 					session.statement.tableName = tbName
-					err = session.addColumn(col.Name)
+					err = session.addColumn(ctx, col.Name)
 				}
 				if err != nil {
 					return err
@@ -372,7 +373,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 				if oriIndex != nil {
 					if oriIndex.Type != index.Type {
 						sql := engine.dialect.DropIndexSql(tbName, oriIndex)
-						_, err = session.exec(sql)
+						_, err = session.exec(ctx, sql)
 						if err != nil {
 							return err
 						}
@@ -388,7 +389,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 			for name2, index2 := range oriTable.Indexes {
 				if _, ok := foundIndexNames[name2]; !ok {
 					sql := engine.dialect.DropIndexSql(tbName, index2)
-					_, err = session.exec(sql)
+					_, err = session.exec(ctx, sql)
 					if err != nil {
 						return err
 					}
@@ -399,11 +400,11 @@ func (session *Session) Sync2(beans ...interface{}) error {
 				if index.Type == core.UniqueType {
 					session.statement.RefTable = table
 					session.statement.tableName = tbName
-					err = session.addUnique(tbName, name)
+					err = session.addUnique(ctx, tbName, name)
 				} else if index.Type == core.IndexType {
 					session.statement.RefTable = table
 					session.statement.tableName = tbName
-					err = session.addIndex(tbName, name)
+					err = session.addIndex(ctx, tbName, name)
 				}
 				if err != nil {
 					return err

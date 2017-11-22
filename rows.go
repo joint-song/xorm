@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"reflect"
@@ -23,7 +24,7 @@ type Rows struct {
 	lastError error
 }
 
-func newRows(session *Session, bean interface{}) (*Rows, error) {
+func newRows(ctx context.Context, session *Session, bean interface{}) (*Rows, error) {
 	rows := new(Rows)
 	rows.session = session
 	rows.beanType = reflect.Indirect(reflect.ValueOf(bean)).Type()
@@ -50,7 +51,7 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 		args = rows.session.statement.RawParams
 	}
 
-	rows.rows, err = rows.session.queryRows(sqlStr, args...)
+	rows.rows, err = rows.session.queryRows(ctx, sqlStr, args...)
 	if err != nil {
 		rows.lastError = err
 		rows.Close()
@@ -85,7 +86,7 @@ func (rows *Rows) Err() error {
 }
 
 // Scan row record to bean properties
-func (rows *Rows) Scan(bean interface{}) error {
+func (rows *Rows) Scan(ctx context.Context, bean interface{}) error {
 	if rows.lastError != nil {
 		return rows.lastError
 	}
@@ -104,7 +105,7 @@ func (rows *Rows) Scan(bean interface{}) error {
 		return err
 	}
 
-	_, err = rows.session.slice2Bean(scanResults, rows.fields, bean, &dataStruct, rows.session.statement.RefTable)
+	_, err = rows.session.slice2Bean(ctx, scanResults, rows.fields, bean, &dataStruct, rows.session.statement.RefTable)
 	if err != nil {
 		return err
 	}

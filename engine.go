@@ -7,6 +7,7 @@ package xorm
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/gob"
 	"errors"
@@ -41,6 +42,7 @@ type Engine struct {
 	showExecTime bool
 
 	logger     core.ILogger
+	ctxLogger  func(ctx context.Context) core.ILogger
 	TZLocation *time.Location // The timezone of the application
 	DatabaseTZ *time.Location // The timezone of the database
 
@@ -283,10 +285,10 @@ func (engine *Engine) Close() error {
 }
 
 // Ping tests if database is alive
-func (engine *Engine) Ping() error {
+func (engine *Engine) Ping(ctx context.Context) error {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.Ping()
+	return session.Ping(ctx)
 }
 
 // logging sql
@@ -337,21 +339,21 @@ func (engine *Engine) NoAutoCondition(no ...bool) *Session {
 }
 
 // DBMetas Retrieve all tables, columns, indexes' informations from database.
-func (engine *Engine) DBMetas() ([]*core.Table, error) {
-	tables, err := engine.dialect.GetTables()
+func (engine *Engine) DBMetas(ctx context.Context) ([]*core.Table, error) {
+	tables, err := engine.dialect.GetTables(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, table := range tables {
-		colSeq, cols, err := engine.dialect.GetColumns(table.Name)
+		colSeq, cols, err := engine.dialect.GetColumns(ctx, table.Name)
 		if err != nil {
 			return nil, err
 		}
 		for _, name := range colSeq {
 			table.AddColumn(cols[name])
 		}
-		indexes, err := engine.dialect.GetIndexes(table.Name)
+		indexes, err := engine.dialect.GetIndexes(ctx, table.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -371,41 +373,41 @@ func (engine *Engine) DBMetas() ([]*core.Table, error) {
 }
 
 // DumpAllToFile dump database all table structs and data to a file
-func (engine *Engine) DumpAllToFile(fp string, tp ...core.DbType) error {
+func (engine *Engine) DumpAllToFile(ctx context.Context, fp string, tp ...core.DbType) error {
 	f, err := os.Create(fp)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return engine.DumpAll(f, tp...)
+	return engine.DumpAll(ctx, f, tp...)
 }
 
 // DumpAll dump database all table structs and data to w
-func (engine *Engine) DumpAll(w io.Writer, tp ...core.DbType) error {
-	tables, err := engine.DBMetas()
+func (engine *Engine) DumpAll(ctx context.Context, w io.Writer, tp ...core.DbType) error {
+	tables, err := engine.DBMetas(ctx)
 	if err != nil {
 		return err
 	}
-	return engine.DumpTables(tables, w, tp...)
+	return engine.DumpTables(ctx, tables, w, tp...)
 }
 
 // DumpTablesToFile dump specified tables to SQL file.
-func (engine *Engine) DumpTablesToFile(tables []*core.Table, fp string, tp ...core.DbType) error {
+func (engine *Engine) DumpTablesToFile(ctx context.Context, tables []*core.Table, fp string, tp ...core.DbType) error {
 	f, err := os.Create(fp)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return engine.DumpTables(tables, f, tp...)
+	return engine.DumpTables(ctx, tables, f, tp...)
 }
 
 // DumpTables dump specify tables to io.Writer
-func (engine *Engine) DumpTables(tables []*core.Table, w io.Writer, tp ...core.DbType) error {
-	return engine.dumpTables(tables, w, tp...)
+func (engine *Engine) DumpTables(ctx context.Context, tables []*core.Table, w io.Writer, tp ...core.DbType) error {
+	return engine.dumpTables(ctx, tables, w, tp...)
 }
 
 // dumpTables dump database all table structs and data to w with specify db type
-func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.DbType) error {
+func (engine *Engine) dumpTables(ctx context.Context, tables []*core.Table, w io.Writer, tp ...core.DbType) error {
 	var dialect core.Dialect
 	var distDBName string
 	if len(tp) == 0 {
@@ -447,7 +449,7 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 		cols := table.ColumnsSeq()
 		colNames := dialect.Quote(strings.Join(cols, dialect.Quote(", ")))
 
-		rows, err := engine.DB().Query("SELECT " + colNames + " FROM " + engine.Quote(table.Name))
+		rows, err := engine.DB().Query(ctx, "SELECT "+colNames+" FROM "+engine.Quote(table.Name))
 		if err != nil {
 			return err
 		}
@@ -1057,17 +1059,17 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 }
 
 // IsTableEmpty if a table has any reocrd
-func (engine *Engine) IsTableEmpty(bean interface{}) (bool, error) {
+func (engine *Engine) IsTableEmpty(ctx context.Context, bean interface{}) (bool, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.IsTableEmpty(bean)
+	return session.IsTableEmpty(ctx, bean)
 }
 
 // IsTableExist if a table is exist
-func (engine *Engine) IsTableExist(beanOrTableName interface{}) (bool, error) {
+func (engine *Engine) IsTableExist(ctx context.Context, beanOrTableName interface{}) (bool, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.IsTableExist(beanOrTableName)
+	return session.IsTableExist(ctx, beanOrTableName)
 }
 
 // IdOf get id from one struct
@@ -1142,17 +1144,17 @@ func (engine *Engine) idTypeAssertion(col *core.Column, sid string) (interface{}
 }
 
 // CreateIndexes create indexes
-func (engine *Engine) CreateIndexes(bean interface{}) error {
+func (engine *Engine) CreateIndexes(ctx context.Context, bean interface{}) error {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.CreateIndexes(bean)
+	return session.CreateIndexes(ctx, bean)
 }
 
 // CreateUniques create uniques
-func (engine *Engine) CreateUniques(bean interface{}) error {
+func (engine *Engine) CreateUniques(ctx context.Context, bean interface{}) error {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.CreateUniques(bean)
+	return session.CreateUniques(ctx, bean)
 }
 
 func (engine *Engine) getCacher2(table *core.Table) core.Cacher {
@@ -1211,7 +1213,7 @@ func (engine *Engine) ClearCache(beans ...interface{}) error {
 // Sync the new struct changes to database, this method will automatically add
 // table, column, index, unique. but will not delete or change anything.
 // If you change some field, you should change the database manually.
-func (engine *Engine) Sync(beans ...interface{}) error {
+func (engine *Engine) Sync(ctx context.Context, beans ...interface{}) error {
 	session := engine.NewSession()
 	defer session.Close()
 
@@ -1223,33 +1225,33 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 			return err
 		}
 
-		isExist, err := session.Table(bean).isTableExist(tableName)
+		isExist, err := session.Table(bean).isTableExist(ctx, tableName)
 		if err != nil {
 			return err
 		}
 		if !isExist {
-			err = session.createTable(bean)
+			err = session.createTable(ctx, bean)
 			if err != nil {
 				return err
 			}
 		}
 		/*isEmpty, err := engine.IsEmptyTable(bean)
 		  if err != nil {
-		      return err
+			  return err
 		  }*/
 		var isEmpty bool
 		if isEmpty {
-			err = session.dropTable(bean)
+			err = session.dropTable(ctx, bean)
 			if err != nil {
 				return err
 			}
-			err = session.createTable(bean)
+			err = session.createTable(ctx, bean)
 			if err != nil {
 				return err
 			}
 		} else {
 			for _, col := range table.Columns() {
-				isExist, err := engine.dialect.IsColumnExist(tableName, col.Name)
+				isExist, err := engine.dialect.IsColumnExist(ctx, tableName, col.Name)
 				if err != nil {
 					return err
 				}
@@ -1257,7 +1259,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 					if err := session.statement.setRefValue(v); err != nil {
 						return err
 					}
-					err = session.addColumn(col.Name)
+					err = session.addColumn(ctx, col.Name)
 					if err != nil {
 						return err
 					}
@@ -1269,7 +1271,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 					return err
 				}
 				if index.Type == core.UniqueType {
-					isExist, err := session.isIndexExist2(tableName, index.Cols, true)
+					isExist, err := session.isIndexExist2(ctx, tableName, index.Cols, true)
 					if err != nil {
 						return err
 					}
@@ -1278,13 +1280,13 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 							return err
 						}
 
-						err = session.addUnique(tableName, name)
+						err = session.addUnique(ctx, tableName, name)
 						if err != nil {
 							return err
 						}
 					}
 				} else if index.Type == core.IndexType {
-					isExist, err := session.isIndexExist2(tableName, index.Cols, false)
+					isExist, err := session.isIndexExist2(ctx, tableName, index.Cols, false)
 					if err != nil {
 						return err
 					}
@@ -1293,7 +1295,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 							return err
 						}
 
-						err = session.addIndex(tableName, name)
+						err = session.addIndex(ctx, tableName, name)
 						if err != nil {
 							return err
 						}
@@ -1308,14 +1310,14 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 }
 
 // Sync2 synchronize structs to database tables
-func (engine *Engine) Sync2(beans ...interface{}) error {
+func (engine *Engine) Sync2(ctx context.Context, beans ...interface{}) error {
 	s := engine.NewSession()
 	defer s.Close()
-	return s.Sync2(beans...)
+	return s.Sync2(ctx, beans...)
 }
 
 // CreateTables create tabls according bean
-func (engine *Engine) CreateTables(beans ...interface{}) error {
+func (engine *Engine) CreateTables(ctx context.Context, beans ...interface{}) error {
 	session := engine.NewSession()
 	defer session.Close()
 
@@ -1325,7 +1327,7 @@ func (engine *Engine) CreateTables(beans ...interface{}) error {
 	}
 
 	for _, bean := range beans {
-		err = session.createTable(bean)
+		err = session.createTable(ctx, bean)
 		if err != nil {
 			session.Rollback()
 			return err
@@ -1335,7 +1337,7 @@ func (engine *Engine) CreateTables(beans ...interface{}) error {
 }
 
 // DropTables drop specify tables
-func (engine *Engine) DropTables(beans ...interface{}) error {
+func (engine *Engine) DropTables(ctx context.Context, beans ...interface{}) error {
 	session := engine.NewSession()
 	defer session.Close()
 
@@ -1345,7 +1347,7 @@ func (engine *Engine) DropTables(beans ...interface{}) error {
 	}
 
 	for _, bean := range beans {
-		err = session.dropTable(bean)
+		err = session.dropTable(ctx, bean)
 		if err != nil {
 			session.Rollback()
 			return err
@@ -1355,52 +1357,52 @@ func (engine *Engine) DropTables(beans ...interface{}) error {
 }
 
 // DropIndexes drop indexes of a table
-func (engine *Engine) DropIndexes(bean interface{}) error {
+func (engine *Engine) DropIndexes(ctx context.Context, bean interface{}) error {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.DropIndexes(bean)
+	return session.DropIndexes(ctx, bean)
 }
 
 // Exec raw sql
-func (engine *Engine) Exec(sql string, args ...interface{}) (sql.Result, error) {
+func (engine *Engine) Exec(ctx context.Context, sql string, args ...interface{}) (sql.Result, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.Exec(sql, args...)
+	return session.Exec(ctx, sql, args...)
 }
 
 // Query a raw sql and return records as []map[string][]byte
-func (engine *Engine) Query(sqlorArgs ...interface{}) (resultsSlice []map[string][]byte, err error) {
+func (engine *Engine) Query(ctx context.Context, sqlorArgs ...interface{}) (resultsSlice []map[string][]byte, err error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.Query(sqlorArgs...)
+	return session.Query(ctx, sqlorArgs...)
 }
 
 // QueryString runs a raw sql and return records as []map[string]string
-func (engine *Engine) QueryString(sqlorArgs ...interface{}) ([]map[string]string, error) {
+func (engine *Engine) QueryString(ctx context.Context, sqlorArgs ...interface{}) ([]map[string]string, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.QueryString(sqlorArgs...)
+	return session.QueryString(ctx, sqlorArgs...)
 }
 
 // QueryInterface runs a raw sql and return records as []map[string]interface{}
-func (engine *Engine) QueryInterface(sqlorArgs ...interface{}) ([]map[string]interface{}, error) {
+func (engine *Engine) QueryInterface(ctx context.Context, sqlorArgs ...interface{}) ([]map[string]interface{}, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.QueryInterface(sqlorArgs...)
+	return session.QueryInterface(ctx, sqlorArgs...)
 }
 
 // Insert one or more records
-func (engine *Engine) Insert(beans ...interface{}) (int64, error) {
+func (engine *Engine) Insert(ctx context.Context, beans ...interface{}) (int64, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.Insert(beans...)
+	return session.Insert(ctx, beans...)
 }
 
 // InsertOne insert only one record
-func (engine *Engine) InsertOne(bean interface{}) (int64, error) {
+func (engine *Engine) InsertOne(ctx context.Context, bean interface{}) (int64, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.InsertOne(bean)
+	return session.InsertOne(ctx, bean)
 }
 
 // Update records, bean's non-empty fields are updated contents,
@@ -1409,91 +1411,91 @@ func (engine *Engine) InsertOne(bean interface{}) (int64, error) {
 //        1.bool will defaultly be updated content nor conditions
 //         You should call UseBool if you have bool to use.
 //        2.float32 & float64 may be not inexact as conditions
-func (engine *Engine) Update(bean interface{}, condiBeans ...interface{}) (int64, error) {
+func (engine *Engine) Update(ctx context.Context, bean interface{}, condiBeans ...interface{}) (int64, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.Update(bean, condiBeans...)
+	return session.Update(ctx, bean, condiBeans...)
 }
 
 // Delete records, bean's non-empty fields are conditions
-func (engine *Engine) Delete(bean interface{}) (int64, error) {
+func (engine *Engine) Delete(ctx context.Context, bean interface{}) (int64, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.Delete(bean)
+	return session.Delete(ctx, bean)
 }
 
 // Get retrieve one record from table, bean's non-empty fields
 // are conditions
-func (engine *Engine) Get(bean interface{}) (bool, error) {
+func (engine *Engine) Get(ctx context.Context, bean interface{}) (bool, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.Get(bean)
+	return session.Get(ctx, bean)
 }
 
 // Exist returns true if the record exist otherwise return false
-func (engine *Engine) Exist(bean ...interface{}) (bool, error) {
+func (engine *Engine) Exist(ctx context.Context, bean ...interface{}) (bool, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.Exist(bean...)
+	return session.Exist(ctx, bean...)
 }
 
 // Find retrieve records from table, condiBeans's non-empty fields
 // are conditions. beans could be []Struct, []*Struct, map[int64]Struct
 // map[int64]*Struct
-func (engine *Engine) Find(beans interface{}, condiBeans ...interface{}) error {
+func (engine *Engine) Find(ctx context.Context, beans interface{}, condiBeans ...interface{}) error {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.Find(beans, condiBeans...)
+	return session.Find(ctx, beans, condiBeans...)
 }
 
 // Iterate record by record handle records from table, bean's non-empty fields
 // are conditions.
-func (engine *Engine) Iterate(bean interface{}, fun IterFunc) error {
+func (engine *Engine) Iterate(ctx context.Context, bean interface{}, fun IterFunc) error {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.Iterate(bean, fun)
+	return session.Iterate(ctx, bean, fun)
 }
 
 // Rows return sql.Rows compatible Rows obj, as a forward Iterator object for iterating record by record, bean's non-empty fields
 // are conditions.
-func (engine *Engine) Rows(bean interface{}) (*Rows, error) {
+func (engine *Engine) Rows(ctx context.Context, bean interface{}) (*Rows, error) {
 	session := engine.NewSession()
-	return session.Rows(bean)
+	return session.Rows(ctx, bean)
 }
 
 // Count counts the records. bean's non-empty fields are conditions.
-func (engine *Engine) Count(bean ...interface{}) (int64, error) {
+func (engine *Engine) Count(ctx context.Context, bean ...interface{}) (int64, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.Count(bean...)
+	return session.Count(ctx, bean...)
 }
 
 // Sum sum the records by some column. bean's non-empty fields are conditions.
-func (engine *Engine) Sum(bean interface{}, colName string) (float64, error) {
+func (engine *Engine) Sum(ctx context.Context, bean interface{}, colName string) (float64, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.Sum(bean, colName)
+	return session.Sum(ctx, bean, colName)
 }
 
 // SumInt sum the records by some column. bean's non-empty fields are conditions.
-func (engine *Engine) SumInt(bean interface{}, colName string) (int64, error) {
+func (engine *Engine) SumInt(ctx context.Context, bean interface{}, colName string) (int64, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.SumInt(bean, colName)
+	return session.SumInt(ctx, bean, colName)
 }
 
 // Sums sum the records by some columns. bean's non-empty fields are conditions.
-func (engine *Engine) Sums(bean interface{}, colNames ...string) ([]float64, error) {
+func (engine *Engine) Sums(ctx context.Context, bean interface{}, colNames ...string) ([]float64, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.Sums(bean, colNames...)
+	return session.Sums(ctx, bean, colNames...)
 }
 
 // SumsInt like Sums but return slice of int64 instead of float64.
-func (engine *Engine) SumsInt(bean interface{}, colNames ...string) ([]int64, error) {
+func (engine *Engine) SumsInt(ctx context.Context, bean interface{}, colNames ...string) ([]int64, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.SumsInt(bean, colNames...)
+	return session.SumsInt(ctx, bean, colNames...)
 }
 
 // ImportFile SQL DDL file

@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"regexp"
@@ -633,11 +634,11 @@ func (db *oracle) TableCheckSql(tableName string) (string, []interface{}) {
 	return `SELECT table_name FROM user_tables WHERE table_name = :1`, args
 }
 
-func (db *oracle) MustDropTable(tableName string) error {
+func (db *oracle) MustDropTable(ctx context.Context, tableName string) error {
 	sql, args := db.TableCheckSql(tableName)
 	db.LogSQL(sql, args)
 
-	rows, err := db.DB().Query(sql, args...)
+	rows, err := db.DB().Query(ctx, sql, args...)
 	if err != nil {
 		return err
 	}
@@ -660,13 +661,13 @@ func (db *oracle) MustDropTable(tableName string) error {
 		" AND column_name = ?", args
 }*/
 
-func (db *oracle) IsColumnExist(tableName, colName string) (bool, error) {
+func (db *oracle) IsColumnExist(ctx context.Context, tableName, colName string) (bool, error) {
 	args := []interface{}{tableName, colName}
 	query := "SELECT column_name FROM USER_TAB_COLUMNS WHERE table_name = :1" +
 		" AND column_name = :2"
 	db.LogSQL(query, args)
 
-	rows, err := db.DB().Query(query, args...)
+	rows, err := db.DB().Query(ctx, query, args...)
 	if err != nil {
 		return false, err
 	}
@@ -678,13 +679,13 @@ func (db *oracle) IsColumnExist(tableName, colName string) (bool, error) {
 	return false, nil
 }
 
-func (db *oracle) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
+func (db *oracle) GetColumns(ctx context.Context, tableName string) ([]string, map[string]*core.Column, error) {
 	args := []interface{}{tableName}
 	s := "SELECT column_name,data_default,data_type,data_length,data_precision,data_scale," +
 		"nullable FROM USER_TAB_COLUMNS WHERE table_name = :1"
 	db.LogSQL(s, args)
 
-	rows, err := db.DB().Query(s, args...)
+	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -776,12 +777,12 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*core.Colum
 	return colSeq, cols, nil
 }
 
-func (db *oracle) GetTables() ([]*core.Table, error) {
+func (db *oracle) GetTables(ctx context.Context) ([]*core.Table, error) {
 	args := []interface{}{}
 	s := "SELECT table_name FROM user_tables"
 	db.LogSQL(s, args)
 
-	rows, err := db.DB().Query(s, args...)
+	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -800,13 +801,13 @@ func (db *oracle) GetTables() ([]*core.Table, error) {
 	return tables, nil
 }
 
-func (db *oracle) GetIndexes(tableName string) (map[string]*core.Index, error) {
+func (db *oracle) GetIndexes(ctx context.Context, tableName string) (map[string]*core.Index, error) {
 	args := []interface{}{tableName}
 	s := "SELECT t.column_name,i.uniqueness,i.index_name FROM user_ind_columns t,user_indexes i " +
 		"WHERE t.index_name = i.index_name and t.table_name = i.table_name and t.table_name =:1"
 	db.LogSQL(s, args)
 
-	rows, err := db.DB().Query(s, args...)
+	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {
 		return nil, err
 	}

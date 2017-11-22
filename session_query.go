@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -74,7 +75,7 @@ func (session *Session) genQuerySQL(sqlorArgs ...interface{}) (string, []interfa
 }
 
 // Query runs a raw sql and return records as []map[string][]byte
-func (session *Session) Query(sqlorArgs ...interface{}) ([]map[string][]byte, error) {
+func (session *Session) Query(ctx context.Context, sqlorArgs ...interface{}) ([]map[string][]byte, error) {
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -84,7 +85,7 @@ func (session *Session) Query(sqlorArgs ...interface{}) ([]map[string][]byte, er
 		return nil, err
 	}
 
-	return session.queryBytes(sqlStr, args...)
+	return session.queryBytes(ctx, sqlStr, args...)
 }
 
 func value2String(rawValue *reflect.Value) (str string, err error) {
@@ -179,7 +180,7 @@ func rows2Strings(rows *core.Rows) (resultsSlice []map[string]string, err error)
 }
 
 // QueryString runs a raw sql and return records as []map[string]string
-func (session *Session) QueryString(sqlorArgs ...interface{}) ([]map[string]string, error) {
+func (session *Session) QueryString(ctx context.Context, sqlorArgs ...interface{}) ([]map[string]string, error) {
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -189,7 +190,7 @@ func (session *Session) QueryString(sqlorArgs ...interface{}) ([]map[string]stri
 		return nil, err
 	}
 
-	rows, err := session.queryRows(sqlStr, args...)
+	rows, err := session.queryRows(ctx, sqlStr, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +233,7 @@ func rows2Interfaces(rows *core.Rows) (resultsSlice []map[string]interface{}, er
 }
 
 // QueryInterface runs a raw sql and return records as []map[string]interface{}
-func (session *Session) QueryInterface(sqlorArgs ...interface{}) ([]map[string]interface{}, error) {
+func (session *Session) QueryInterface(ctx context.Context, sqlorArgs ...interface{}) ([]map[string]interface{}, error) {
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -242,7 +243,7 @@ func (session *Session) QueryInterface(sqlorArgs ...interface{}) ([]map[string]i
 		return nil, err
 	}
 
-	rows, err := session.queryRows(sqlStr, args...)
+	rows, err := session.queryRows(ctx, sqlStr, args...)
 	if err != nil {
 		return nil, err
 	}

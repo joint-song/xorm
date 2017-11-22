@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -15,7 +16,7 @@ import (
 	"github.com/go-xorm/core"
 )
 
-func (session *Session) cacheUpdate(table *core.Table, tableName, sqlStr string, args ...interface{}) error {
+func (session *Session) cacheUpdate(ctx context.Context, table *core.Table, tableName, sqlStr string, args ...interface{}) error {
 	if table == nil ||
 		session.tx != nil {
 		return ErrCacheFailed
@@ -44,7 +45,7 @@ func (session *Session) cacheUpdate(table *core.Table, tableName, sqlStr string,
 	session.engine.logger.Debug("[cacheUpdate] get cache sql", newsql, args[nStart:])
 	ids, err := core.GetCacheSql(cacher, tableName, newsql, args[nStart:])
 	if err != nil {
-		rows, err := session.NoCache().queryRows(newsql, args[nStart:]...)
+		rows, err := session.NoCache().queryRows(ctx, newsql, args[nStart:]...)
 		if err != nil {
 			return err
 		}
@@ -76,8 +77,8 @@ func (session *Session) cacheUpdate(table *core.Table, tableName, sqlStr string,
 		}
 		session.engine.logger.Debug("[cacheUpdate] find updated id", ids)
 	} /*else {
-	    session.engine.LogDebug("[xorm:cacheUpdate] del cached sql:", tableName, newsql, args)
-	    cacher.DelIds(tableName, genSqlKey(newsql, args))
+		session.engine.LogDebug("[xorm:cacheUpdate] del cached sql:", tableName, newsql, args)
+		cacher.DelIds(tableName, genSqlKey(newsql, args))
 	}*/
 
 	for _, id := range ids {
@@ -142,7 +143,7 @@ func (session *Session) cacheUpdate(table *core.Table, tableName, sqlStr string,
 //        1.bool will defaultly be updated content nor conditions
 //         You should call UseBool if you have bool to use.
 //        2.float32 & float64 may be not inexact as conditions
-func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int64, error) {
+func (session *Session) Update(ctx context.Context, bean interface{}, condiBean ...interface{}) (int64, error) {
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -353,7 +354,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		strings.Join(colNames, ", "),
 		condSQL)
 
-	res, err := session.exec(sqlStr, append(args, condArgs...)...)
+	res, err := session.exec(ctx, sqlStr, append(args, condArgs...)...)
 	if err != nil {
 		return 0, err
 	} else if doIncVer {

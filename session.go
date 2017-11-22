@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -263,13 +264,13 @@ func (session *Session) canCache() bool {
 	return true
 }
 
-func (session *Session) doPrepare(db *core.DB, sqlStr string) (stmt *core.Stmt, err error) {
+func (session *Session) doPrepare(ctx context.Context, db *core.DB, sqlStr string) (stmt *core.Stmt, err error) {
 	crc := crc32.ChecksumIEEE([]byte(sqlStr))
 	// TODO try hash(sqlStr+len(sqlStr))
 	var has bool
 	stmt, has = session.stmtCache[crc]
 	if !has {
-		stmt, err = db.Prepare(sqlStr)
+		stmt, err = db.Prepare(ctx, sqlStr)
 		if err != nil {
 			return nil, err
 		}
@@ -301,7 +302,7 @@ func (session *Session) getField(dataStruct *reflect.Value, key string, table *c
 // Cell cell is a result of one column field
 type Cell *interface{}
 
-func (session *Session) rows2Beans(rows *core.Rows, fields []string,
+func (session *Session) rows2Beans(ctx context.Context, rows *core.Rows, fields []string,
 	table *core.Table, newElemFunc func([]string) reflect.Value,
 	sliceValueSetFunc func(*reflect.Value, core.PK) error) error {
 	for rows.Next() {
@@ -314,7 +315,7 @@ func (session *Session) rows2Beans(rows *core.Rows, fields []string,
 		if err != nil {
 			return err
 		}
-		pk, err := session.slice2Bean(scanResults, fields, bean, &dataStruct, table)
+		pk, err := session.slice2Bean(ctx, scanResults, fields, bean, &dataStruct, table)
 		if err != nil {
 			return err
 		}
@@ -351,7 +352,7 @@ func (session *Session) row2Slice(rows *core.Rows, fields []string, bean interfa
 	return scanResults, nil
 }
 
-func (session *Session) slice2Bean(scanResults []interface{}, fields []string, bean interface{}, dataStruct *reflect.Value, table *core.Table) (core.PK, error) {
+func (session *Session) slice2Bean(ctx context.Context, scanResults []interface{}, fields []string, bean interface{}, dataStruct *reflect.Value, table *core.Table) (core.PK, error) {
 	defer func() {
 		if b, hasAfterSet := bean.(AfterSetProcessor); hasAfterSet {
 			for ii, key := range fields {
@@ -672,7 +673,7 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 						// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
 						// property to be fetched lazily
 						structInter := reflect.New(fieldValue.Type())
-						has, err := session.ID(pk).NoCascade().get(structInter.Interface())
+						has, err := session.ID(pk).NoCascade().get(ctx, structInter.Interface())
 						if err != nil {
 							return nil, err
 						}
@@ -807,7 +808,7 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 					return nil, err
 				}
 
-				if err = session.bytes2Value(col, fieldValue, data); err != nil {
+				if err = session.bytes2Value(ctx, col, fieldValue, data); err != nil {
 					return nil, err
 				}
 			}

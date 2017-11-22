@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"testing"
@@ -24,17 +25,17 @@ func TestQueryString(t *testing.T) {
 		Created time.Time `xorm:"created"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(GetVar2)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(GetVar2)))
 
 	var data = GetVar2{
 		Msg:   "hi",
 		Age:   28,
 		Money: 1.5,
 	}
-	_, err := testEngine.InsertOne(data)
+	_, err := testEngine.InsertOne(context.Background(), data)
 	assert.NoError(t, err)
 
-	records, err := testEngine.QueryString("select * from get_var2")
+	records, err := testEngine.QueryString(context.Background(), "select * from get_var2")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(records))
 	assert.Equal(t, 5, len(records[0]))
@@ -52,15 +53,15 @@ func TestQueryString2(t *testing.T) {
 		Msg bool  `xorm:"bit"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(GetVar3)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(GetVar3)))
 
 	var data = GetVar3{
 		Msg: false,
 	}
-	_, err := testEngine.Insert(data)
+	_, err := testEngine.Insert(context.Background(), data)
 	assert.NoError(t, err)
 
-	records, err := testEngine.QueryString("select * from get_var3")
+	records, err := testEngine.QueryString(context.Background(), "select * from get_var3")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(records))
 	assert.Equal(t, 2, len(records[0]))
@@ -115,17 +116,17 @@ func TestQueryInterface(t *testing.T) {
 		Created time.Time `xorm:"created"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(GetVarInterface)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(GetVarInterface)))
 
 	var data = GetVarInterface{
 		Msg:   "hi",
 		Age:   28,
 		Money: 1.5,
 	}
-	_, err := testEngine.InsertOne(data)
+	_, err := testEngine.InsertOne(context.Background(), data)
 	assert.NoError(t, err)
 
-	records, err := testEngine.QueryInterface("select * from get_var_interface")
+	records, err := testEngine.QueryInterface(context.Background(), "select * from get_var_interface")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(records))
 	assert.Equal(t, 5, len(records[0]))
@@ -148,14 +149,14 @@ func TestQueryNoParams(t *testing.T) {
 
 	testEngine.ShowSQL(true)
 
-	assert.NoError(t, testEngine.Sync2(new(QueryNoParams)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(QueryNoParams)))
 
 	var q = QueryNoParams{
 		Msg:   "message",
 		Age:   20,
 		Money: 3000,
 	}
-	cnt, err := testEngine.Insert(&q)
+	cnt, err := testEngine.Insert(context.Background(), &q)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
@@ -175,11 +176,11 @@ func TestQueryNoParams(t *testing.T) {
 		assert.EqualValues(t, 3000, money)
 	}
 
-	results, err := testEngine.Table("query_no_params").Limit(10).Query()
+	results, err := testEngine.Table("query_no_params").Limit(10).Query(context.Background())
 	assert.NoError(t, err)
 	assertResult(t, results)
 
-	results, err = testEngine.SQL("select * from query_no_params").Query()
+	results, err = testEngine.SQL("select * from query_no_params").Query(context.Background())
 	assert.NoError(t, err)
 	assertResult(t, results)
 }

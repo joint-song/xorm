@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -26,20 +27,20 @@ func TestCreatedAndUpdated(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	u := new(UserCU)
-	err := testEngine.DropTables(u)
+	err := testEngine.DropTables(context.Background(), u)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.CreateTables(u)
+	err = testEngine.CreateTables(context.Background(), u)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	u.Name = "sss"
-	cnt, err := testEngine.Insert(u)
+	cnt, err := testEngine.Insert(context.Background(), u)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -52,7 +53,7 @@ func TestCreatedAndUpdated(t *testing.T) {
 	}
 
 	u.Name = "xxx"
-	cnt, err = testEngine.ID(u.Id).Update(u)
+	cnt, err = testEngine.ID(u.Id).Update(context.Background(), u)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -68,7 +69,7 @@ func TestCreatedAndUpdated(t *testing.T) {
 	u.Created = time.Now().Add(-time.Hour * 24 * 365)
 	u.Updated = u.Created
 	fmt.Println(u)
-	cnt, err = testEngine.NoAutoTime().Insert(u)
+	cnt, err = testEngine.NoAutoTime().Insert(context.Background(), u)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -89,23 +90,23 @@ type StrangeName struct {
 func TestStrangeName(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.DropTables(new(StrangeName))
+	err := testEngine.DropTables(context.Background(), new(StrangeName))
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = testEngine.CreateTables(new(StrangeName))
+	err = testEngine.CreateTables(context.Background(), new(StrangeName))
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, err = testEngine.Insert(&StrangeName{Name: "sfsfdsfds"})
+	_, err = testEngine.Insert(context.Background(), &StrangeName{Name: "sfsfdsfds"})
 	if err != nil {
 		t.Error(err)
 	}
 
 	beans := make([]StrangeName, 0)
-	err = testEngine.Find(&beans)
+	err = testEngine.Find(context.Background(), &beans)
 	if err != nil {
 		t.Error(err)
 	}
@@ -123,21 +124,21 @@ func TestCreatedUpdated(t *testing.T) {
 		Updated  time.Time `xorm:"updated"`
 	}
 
-	err := testEngine.Sync2(&CreatedUpdated{})
+	err := testEngine.Sync2(context.Background(), &CreatedUpdated{})
 	assert.NoError(t, err)
 
 	c := &CreatedUpdated{Name: "test"}
-	_, err = testEngine.Insert(c)
+	_, err = testEngine.Insert(context.Background(), c)
 	assert.NoError(t, err)
 
 	c2 := new(CreatedUpdated)
-	has, err := testEngine.ID(c.Id).Get(c2)
+	has, err := testEngine.ID(c.Id).Get(context.Background(), c2)
 	assert.NoError(t, err)
 
 	assert.True(t, has)
 
 	c2.Value -= 1
-	_, err = testEngine.ID(c2.Id).Update(c2)
+	_, err = testEngine.ID(c2.Id).Update(context.Background(), c2)
 	assert.NoError(t, err)
 }
 
@@ -156,16 +157,16 @@ func TestCreatedUpdatedInt64(t *testing.T) {
 	assertSync(t, &CreatedUpdatedInt64{})
 
 	c := &CreatedUpdatedInt64{Name: "test"}
-	_, err := testEngine.Insert(c)
+	_, err := testEngine.Insert(context.Background(), c)
 	assert.NoError(t, err)
 
 	c2 := new(CreatedUpdatedInt64)
-	has, err := testEngine.ID(c.Id).Get(c2)
+	has, err := testEngine.ID(c.Id).Get(context.Background(), c2)
 	assert.NoError(t, err)
 	assert.True(t, has)
 
 	c2.Value -= 1
-	_, err = testEngine.ID(c2.Id).Update(c2)
+	_, err = testEngine.ID(c2.Id).Update(context.Background(), c2)
 	assert.NoError(t, err)
 }
 
@@ -178,20 +179,20 @@ type Lowercase struct {
 func TestLowerCase(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.Sync2(&Lowercase{})
-	_, err = testEngine.Where("(id) > 0").Delete(&Lowercase{})
+	err := testEngine.Sync2(context.Background(), &Lowercase{})
+	_, err = testEngine.Where("(id) > 0").Delete(context.Background(), &Lowercase{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
-	_, err = testEngine.Insert(&Lowercase{ended: 1})
+	_, err = testEngine.Insert(context.Background(), &Lowercase{ended: 1})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	ls := make([]Lowercase, 0)
-	err = testEngine.Find(&ls)
+	err = testEngine.Find(context.Background(), &ls)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -263,23 +264,23 @@ func TestTagComment(t *testing.T) {
 		Id int64 `xorm:"comment(主键)"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(TestComment1)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(TestComment1)))
 
-	tables, err := testEngine.DBMetas()
+	tables, err := testEngine.DBMetas(context.Background())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(tables))
 	assert.EqualValues(t, 1, len(tables[0].Columns()))
 	assert.EqualValues(t, "主键", tables[0].Columns()[0].Comment)
 
-	assert.NoError(t, testEngine.DropTables(new(TestComment1)))
+	assert.NoError(t, testEngine.DropTables(context.Background(), new(TestComment1)))
 
 	type TestComment2 struct {
 		Id int64 `xorm:"comment('主键')"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(TestComment2)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(TestComment2)))
 
-	tables, err = testEngine.DBMetas()
+	tables, err = testEngine.DBMetas(context.Background())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(tables))
 	assert.EqualValues(t, 1, len(tables[0].Columns()))
@@ -297,7 +298,7 @@ func TestTagDefault(t *testing.T) {
 
 	assertSync(t, new(DefaultStruct))
 
-	cnt, err := testEngine.Omit("age").Insert(&DefaultStruct{
+	cnt, err := testEngine.Omit("age").Insert(context.Background(), &DefaultStruct{
 		Name: "test",
 		Age:  20,
 	})
@@ -305,7 +306,7 @@ func TestTagDefault(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 
 	var s DefaultStruct
-	has, err := testEngine.ID(1).Get(&s)
+	has, err := testEngine.ID(1).Get(context.Background(), &s)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 10, s.Age)
@@ -323,7 +324,7 @@ func TestTagsDirection(t *testing.T) {
 
 	assertSync(t, new(OnlyFromDBStruct))
 
-	cnt, err := testEngine.Insert(&OnlyFromDBStruct{
+	cnt, err := testEngine.Insert(context.Background(), &OnlyFromDBStruct{
 		Name: "test",
 		Uuid: "2",
 	})
@@ -331,7 +332,7 @@ func TestTagsDirection(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 
 	var s OnlyFromDBStruct
-	has, err := testEngine.ID(1).Get(&s)
+	has, err := testEngine.ID(1).Get(context.Background(), &s)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, "1", s.Uuid)
@@ -345,7 +346,7 @@ func TestTagsDirection(t *testing.T) {
 
 	assertSync(t, new(OnlyToDBStruct))
 
-	cnt, err = testEngine.Insert(&OnlyToDBStruct{
+	cnt, err = testEngine.Insert(context.Background(), &OnlyToDBStruct{
 		Name: "test",
 		Uuid: "2",
 	})
@@ -353,7 +354,7 @@ func TestTagsDirection(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 
 	var s2 OnlyToDBStruct
-	has, err = testEngine.ID(1).Get(&s2)
+	has, err = testEngine.ID(1).Get(context.Background(), &s2)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, "", s2.Uuid)
@@ -376,18 +377,18 @@ func TestTagTime(t *testing.T) {
 	s := TagUTCStruct{
 		Name: "utc",
 	}
-	cnt, err := testEngine.Insert(&s)
+	cnt, err := testEngine.Insert(context.Background(), &s)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	var u TagUTCStruct
-	has, err := testEngine.ID(1).Get(&u)
+	has, err := testEngine.ID(1).Get(context.Background(), &u)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, s.Created.Format("2006-01-02 15:04:05"), u.Created.Format("2006-01-02 15:04:05"))
 
 	var tm string
-	has, err = testEngine.Table("tag_u_t_c_struct").Cols("created").Get(&tm)
+	has, err = testEngine.Table("tag_u_t_c_struct").Cols("created").Get(context.Background(), &tm)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, s.Created.UTC().Format("2006-01-02 15:04:05"),

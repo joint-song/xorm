@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -24,24 +25,24 @@ func TestGetVar(t *testing.T) {
 		Created time.Time `xorm:"created"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(GetVar)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(GetVar)))
 
 	var data = GetVar{
 		Msg:   "hi",
 		Age:   28,
 		Money: 1.5,
 	}
-	_, err := testEngine.InsertOne(data)
+	_, err := testEngine.InsertOne(context.Background(), data)
 	assert.NoError(t, err)
 
 	var msg string
-	has, err := testEngine.Table("get_var").Cols("msg").Get(&msg)
+	has, err := testEngine.Table("get_var").Cols("msg").Get(context.Background(), &msg)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, "hi", msg)
 
 	var age int
-	has, err = testEngine.Table("get_var").Cols("age").Get(&age)
+	has, err = testEngine.Table("get_var").Cols("age").Get(context.Background(), &age)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, 28, age)
@@ -50,19 +51,19 @@ func TestGetVar(t *testing.T) {
 	has, err = testEngine.Table("get_var").Cols("age").
 		Where("age > ?", 20).
 		And("age < ?", 30).
-		Get(&age2)
+		Get(context.Background(), &age2)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.EqualValues(t, 28, age2)
 
 	var money float64
-	has, err = testEngine.Table("get_var").Cols("money").Get(&money)
+	has, err = testEngine.Table("get_var").Cols("money").Get(context.Background(), &money)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, "1.5", fmt.Sprintf("%.1f", money))
 
 	var valuesString = make(map[string]string)
-	has, err = testEngine.Table("get_var").Get(&valuesString)
+	has, err = testEngine.Table("get_var").Get(context.Background(), &valuesString)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, 5, len(valuesString))
@@ -74,7 +75,7 @@ func TestGetVar(t *testing.T) {
 	// for mymysql driver, interface{} will be []byte, so ignore it currently
 	if testEngine.Dialect().DriverName() != "mymysql" {
 		var valuesInter = make(map[string]interface{})
-		has, err = testEngine.Table("get_var").Where("id = ?", 1).Select("*").Get(&valuesInter)
+		has, err = testEngine.Table("get_var").Where("id = ?", 1).Select("*").Get(context.Background(), &valuesInter)
 		assert.NoError(t, err)
 		assert.Equal(t, true, has)
 		assert.Equal(t, 5, len(valuesInter))
@@ -85,7 +86,7 @@ func TestGetVar(t *testing.T) {
 	}
 
 	var valuesSliceString = make([]string, 5)
-	has, err = testEngine.Table("get_var").Get(&valuesSliceString)
+	has, err = testEngine.Table("get_var").Get(context.Background(), &valuesSliceString)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, "1", valuesSliceString[0])
@@ -94,7 +95,7 @@ func TestGetVar(t *testing.T) {
 	assert.Equal(t, "1.5", valuesSliceString[3])
 
 	var valuesSliceInter = make([]interface{}, 5)
-	has, err = testEngine.Table("get_var").Get(&valuesSliceInter)
+	has, err = testEngine.Table("get_var").Get(context.Background(), &valuesSliceInter)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 
@@ -121,19 +122,19 @@ func TestGetStruct(t *testing.T) {
 		IsMan bool
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UserinfoGet)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(UserinfoGet)))
 
 	var err error
 	if testEngine.Dialect().DBType() == core.MSSQL {
-		_, err = testEngine.Exec("SET IDENTITY_INSERT userinfo_get ON")
+		_, err = testEngine.Exec(context.Background(), "SET IDENTITY_INSERT userinfo_get ON")
 		assert.NoError(t, err)
 	}
-	cnt, err := testEngine.Insert(&UserinfoGet{Uid: 2})
+	cnt, err := testEngine.Insert(context.Background(), &UserinfoGet{Uid: 2})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	user := UserinfoGet{Uid: 2}
-	has, err := testEngine.Get(&user)
+	has, err := testEngine.Get(context.Background(), &user)
 	assert.NoError(t, err)
 	assert.True(t, has)
 
@@ -143,18 +144,18 @@ func TestGetStruct(t *testing.T) {
 		Total  int64
 	}
 
-	assert.NoError(t, testEngine.Sync2(&NoIdUser{}))
+	assert.NoError(t, testEngine.Sync2(context.Background(), &NoIdUser{}))
 
 	userCol := testEngine.GetColumnMapper().Obj2Table("User")
-	_, err = testEngine.Where("`"+userCol+"` = ?", "xlw").Delete(&NoIdUser{})
+	_, err = testEngine.Where("`"+userCol+"` = ?", "xlw").Delete(context.Background(), &NoIdUser{})
 	assert.NoError(t, err)
 
-	cnt, err = testEngine.Insert(&NoIdUser{"xlw", 20, 100})
+	cnt, err = testEngine.Insert(context.Background(), &NoIdUser{"xlw", 20, 100})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	noIdUser := new(NoIdUser)
-	has, err = testEngine.Where("`"+userCol+"` = ?", "xlw").Get(noIdUser)
+	has, err = testEngine.Where("`"+userCol+"` = ?", "xlw").Get(context.Background(), noIdUser)
 	assert.NoError(t, err)
 	assert.True(t, has)
 }
@@ -170,7 +171,7 @@ func TestGetSlice(t *testing.T) {
 	assertSync(t, new(UserinfoSlice))
 
 	var users []UserinfoSlice
-	has, err := testEngine.Get(&users)
+	has, err := testEngine.Get(context.Background(), &users)
 	assert.False(t, has)
 	assert.Error(t, err)
 }
@@ -186,11 +187,11 @@ func TestGetError(t *testing.T) {
 	assertSync(t, new(GetError))
 
 	var info = new(GetError)
-	has, err := testEngine.Get(&info)
+	has, err := testEngine.Get(context.Background(), &info)
 	assert.False(t, has)
 	assert.Error(t, err)
 
-	has, err = testEngine.Get(info)
+	has, err = testEngine.Get(context.Background(), info)
 	assert.False(t, has)
 	assert.NoError(t, err)
 }
@@ -209,20 +210,20 @@ func TestJSONString(t *testing.T) {
 
 	assertSync(t, new(JsonJson))
 
-	_, err := testEngine.Insert(&JsonJson{
+	_, err := testEngine.Insert(context.Background(), &JsonJson{
 		Content: []string{"1", "2"},
 	})
 	assert.NoError(t, err)
 
 	var js JsonString
-	has, err := testEngine.Table("json_json").Get(&js)
+	has, err := testEngine.Table("json_json").Get(context.Background(), &js)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 1, js.Id)
 	assert.EqualValues(t, `["1","2"]`, js.Content)
 
 	var jss []JsonString
-	err = testEngine.Table("json_json").Find(&jss)
+	err = testEngine.Table("json_json").Find(context.Background(), &jss)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(jss))
 	assert.EqualValues(t, `["1","2"]`, jss[0].Content)

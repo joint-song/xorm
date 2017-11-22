@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,7 +23,7 @@ func TestArrayField(t *testing.T) {
 		Name [20]byte `xorm:"char(80)"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(ArrayStruct)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(ArrayStruct)))
 
 	var as = ArrayStruct{
 		Name: [20]byte{
@@ -32,18 +33,18 @@ func TestArrayField(t *testing.T) {
 			96, 96, 96, 96, 96,
 		},
 	}
-	cnt, err := testEngine.Insert(&as)
+	cnt, err := testEngine.Insert(context.Background(), &as)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	var arr ArrayStruct
-	has, err := testEngine.ID(1).Get(&arr)
+	has, err := testEngine.ID(1).Get(context.Background(), &arr)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, as.Name, arr.Name)
 
 	var arrs []ArrayStruct
-	err = testEngine.Find(&arrs)
+	err = testEngine.Find(context.Background(), &arrs)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(arrs))
 	assert.Equal(t, as.Name, arrs[0].Name)
@@ -55,24 +56,24 @@ func TestArrayField(t *testing.T) {
 		96, 96, 96, 96, 96,
 	}
 
-	cnt, err = testEngine.ID(1).Update(&ArrayStruct{
+	cnt, err = testEngine.ID(1).Update(context.Background(), &ArrayStruct{
 		Name: newName,
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	var newArr ArrayStruct
-	has, err = testEngine.ID(1).Get(&newArr)
+	has, err = testEngine.ID(1).Get(context.Background(), &newArr)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, newName, newArr.Name)
 
-	cnt, err = testEngine.ID(1).Delete(new(ArrayStruct))
+	cnt, err = testEngine.ID(1).Delete(context.Background(), new(ArrayStruct))
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	var cfgArr ArrayStruct
-	has, err = testEngine.ID(1).Get(&cfgArr)
+	has, err = testEngine.ID(1).Get(context.Background(), &cfgArr)
 	assert.NoError(t, err)
 	assert.Equal(t, false, has)
 }
@@ -84,17 +85,17 @@ func TestGetBytes(t *testing.T) {
 		Data []byte `xorm:"VARBINARY(250)"`
 	}
 
-	err := testEngine.Sync2(new(Varbinary))
+	err := testEngine.Sync2(context.Background(), new(Varbinary))
 	assert.NoError(t, err)
 
-	cnt, err := testEngine.Insert(&Varbinary{
+	cnt, err := testEngine.Insert(context.Background(), &Varbinary{
 		Data: []byte("test"),
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	var b Varbinary
-	has, err := testEngine.Get(&b)
+	has, err := testEngine.Get(context.Background(), &b)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, "test", string(b.Data))
@@ -153,8 +154,8 @@ func TestConversion(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	c := new(ConvStruct)
-	assert.NoError(t, testEngine.DropTables(c))
-	assert.NoError(t, testEngine.Sync2(c))
+	assert.NoError(t, testEngine.DropTables(context.Background(), c))
+	assert.NoError(t, testEngine.Sync2(context.Background(), c))
 
 	var s ConvString = "sssss"
 	c.Conv = "tttt"
@@ -164,11 +165,11 @@ func TestConversion(t *testing.T) {
 	c.Cfg3 = &ConvConfig{"zz", 3}
 	c.Slice = []*ConvConfig{{"yy", 4}, {"ff", 5}}
 
-	_, err := testEngine.Insert(c)
+	_, err := testEngine.Insert(context.Background(), c)
 	assert.NoError(t, err)
 
 	c1 := new(ConvStruct)
-	has, err := testEngine.Get(c1)
+	has, err := testEngine.Get(context.Background(), c1)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, "prefix---tttt", string(c1.Conv))
@@ -212,10 +213,10 @@ type MyStruct struct {
 func TestCustomType1(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.DropTables(&MyStruct{})
+	err := testEngine.DropTables(context.Background(), &MyStruct{})
 	assert.NoError(t, err)
 
-	err = testEngine.CreateTables(&MyStruct{})
+	err = testEngine.CreateTables(context.Background(), &MyStruct{})
 	assert.NoError(t, err)
 
 	i := MyStruct{Name: "Test", Type: MyInt(1)}
@@ -232,7 +233,7 @@ func TestCustomType1(t *testing.T) {
 	i.NameArray = []string{"ssss", "fsdf", "lllll, ss"}
 	i.MSS = map[string]string{"s": "sfds,ss", "x": "lfjljsl"}
 
-	cnt, err := testEngine.Insert(&i)
+	cnt, err := testEngine.Insert(context.Background(), &i)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
@@ -240,24 +241,24 @@ func TestCustomType1(t *testing.T) {
 	i.NameArray = []string{}
 	i.MSS = map[string]string{}
 	i.F = 0
-	has, err := testEngine.Get(&i)
+	has, err := testEngine.Get(context.Background(), &i)
 	assert.NoError(t, err)
 	assert.True(t, has)
 
 	ss := []MyStruct{}
-	err = testEngine.Find(&ss)
+	err = testEngine.Find(context.Background(), &ss)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(ss))
 	assert.EqualValues(t, i, ss[0])
 
 	sss := MyStruct{}
-	has, err = testEngine.Get(&sss)
+	has, err = testEngine.Get(context.Background(), &sss)
 	assert.NoError(t, err)
 	assert.True(t, has)
 
 	sss.NameArray = []string{}
 	sss.MSS = map[string]string{}
-	cnt, err = testEngine.Delete(&sss)
+	cnt, err = testEngine.Delete(context.Background(), &sss)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 }
@@ -301,11 +302,11 @@ type UserCus struct {
 func TestCustomType2(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.CreateTables(&UserCus{})
+	err := testEngine.CreateTables(context.Background(), &UserCus{})
 	assert.NoError(t, err)
 
 	tableName := testEngine.GetTableMapper().Obj2Table("UserCus")
-	_, err = testEngine.Exec("delete from " + testEngine.Quote(tableName))
+	_, err = testEngine.Exec(context.Background(), "delete from "+testEngine.Quote(tableName))
 	assert.NoError(t, err)
 
 	if testEngine.Dialect().DBType() == core.MSSQL {
@@ -316,18 +317,18 @@ func TestCustomType2(t *testing.T) {
 		}*/
 	}
 
-	_, err = testEngine.Insert(&UserCus{1, "xlw", Registed})
+	_, err = testEngine.Insert(context.Background(), &UserCus{1, "xlw", Registed})
 	assert.NoError(t, err)
 
 	user := UserCus{}
-	exist, err := testEngine.ID(1).Get(&user)
+	exist, err := testEngine.ID(1).Get(context.Background(), &user)
 	assert.NoError(t, err)
 	assert.True(t, exist)
 
 	fmt.Println(user)
 
 	users := make([]UserCus, 0)
-	err = testEngine.Where("`"+testEngine.GetColumnMapper().Obj2Table("Status")+"` = ?", "Registed").Find(&users)
+	err = testEngine.Where("`"+testEngine.GetColumnMapper().Obj2Table("Status")+"` = ?", "Registed").Find(context.Background(), &users)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(users))
 

@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -16,27 +17,27 @@ import (
 func TestStoreEngine(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	assert.NoError(t, testEngine.DropTables("user_store_engine"))
+	assert.NoError(t, testEngine.DropTables(context.Background(), "user_store_engine"))
 
 	type UserinfoStoreEngine struct {
 		Id   int64
 		Name string
 	}
 
-	assert.NoError(t, testEngine.StoreEngine("InnoDB").Table("user_store_engine").CreateTable(&UserinfoStoreEngine{}))
+	assert.NoError(t, testEngine.StoreEngine("InnoDB").Table("user_store_engine").CreateTable(context.Background(), &UserinfoStoreEngine{}))
 }
 
 func TestCreateTable(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	assert.NoError(t, testEngine.DropTables("user_user"))
+	assert.NoError(t, testEngine.DropTables(context.Background(), "user_user"))
 
 	type UserinfoCreateTable struct {
 		Id   int64
 		Name string
 	}
 
-	assert.NoError(t, testEngine.Table("user_user").CreateTable(&UserinfoCreateTable{}))
+	assert.NoError(t, testEngine.Table("user_user").CreateTable(context.Background(), &UserinfoCreateTable{}))
 }
 
 func TestCreateMultiTables(t *testing.T) {
@@ -56,9 +57,9 @@ func TestCreateMultiTables(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		tableName := fmt.Sprintf("user_%v", i)
 
-		assert.NoError(t, session.DropTable(tableName))
+		assert.NoError(t, session.DropTable(context.Background(), tableName))
 
-		assert.NoError(t, session.Table(tableName).CreateTable(user))
+		assert.NoError(t, session.Table(tableName).CreateTable(context.Background(), user))
 	}
 
 	assert.NoError(t, session.Commit())
@@ -85,21 +86,21 @@ func (SyncTable2) TableName() string {
 func TestSyncTable(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	assert.NoError(t, testEngine.Sync2(new(SyncTable1)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(SyncTable1)))
 
-	assert.NoError(t, testEngine.Sync2(new(SyncTable2)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(SyncTable2)))
 }
 
 func TestIsTableExist(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	exist, err := testEngine.IsTableExist(new(CustomTableName))
+	exist, err := testEngine.IsTableExist(context.Background(), new(CustomTableName))
 	assert.NoError(t, err)
 	assert.False(t, exist)
 
-	assert.NoError(t, testEngine.CreateTables(new(CustomTableName)))
+	assert.NoError(t, testEngine.CreateTables(context.Background(), new(CustomTableName)))
 
-	exist, err = testEngine.IsTableExist(new(CustomTableName))
+	exist, err = testEngine.IsTableExist(context.Background(), new(CustomTableName))
 	assert.NoError(t, err)
 	assert.True(t, exist)
 }
@@ -124,16 +125,16 @@ func TestIsTableEmpty(t *testing.T) {
 		Uid         int64
 	}
 
-	assert.NoError(t, testEngine.DropTables(&PictureEmpty{}, &NumericEmpty{}))
+	assert.NoError(t, testEngine.DropTables(context.Background(), &PictureEmpty{}, &NumericEmpty{}))
 
-	assert.NoError(t, testEngine.Sync2(new(PictureEmpty), new(NumericEmpty)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(PictureEmpty), new(NumericEmpty)))
 
-	isEmpty, err := testEngine.IsTableEmpty(&PictureEmpty{})
+	isEmpty, err := testEngine.IsTableEmpty(context.Background(), &PictureEmpty{})
 	assert.NoError(t, err)
 	assert.True(t, isEmpty)
 
 	tbName := testEngine.GetTableMapper().Obj2Table("PictureEmpty")
-	isEmpty, err = testEngine.IsTableEmpty(tbName)
+	isEmpty, err = testEngine.IsTableEmpty(context.Background(), tbName)
 	assert.NoError(t, err)
 	assert.True(t, isEmpty)
 }
@@ -151,9 +152,9 @@ func TestCustomTableName(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	c := new(CustomTableName)
-	assert.NoError(t, testEngine.DropTables(c))
+	assert.NoError(t, testEngine.DropTables(context.Background(), c))
 
-	assert.NoError(t, testEngine.CreateTables(c))
+	assert.NoError(t, testEngine.CreateTables(context.Background(), c))
 }
 
 func TestDump(t *testing.T) {
@@ -161,7 +162,7 @@ func TestDump(t *testing.T) {
 
 	fp := testEngine.Dialect().URI().DbName + ".sql"
 	os.Remove(fp)
-	assert.NoError(t, testEngine.DumpAllToFile(fp))
+	assert.NoError(t, testEngine.DumpAllToFile(context.Background(), fp))
 }
 
 type IndexOrUnique struct {
@@ -177,24 +178,24 @@ type IndexOrUnique struct {
 func TestIndexAndUnique(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	assert.NoError(t, testEngine.CreateTables(&IndexOrUnique{}))
+	assert.NoError(t, testEngine.CreateTables(context.Background(), &IndexOrUnique{}))
 
-	assert.NoError(t, testEngine.DropTables(&IndexOrUnique{}))
+	assert.NoError(t, testEngine.DropTables(context.Background(), &IndexOrUnique{}))
 
-	assert.NoError(t, testEngine.CreateTables(&IndexOrUnique{}))
+	assert.NoError(t, testEngine.CreateTables(context.Background(), &IndexOrUnique{}))
 
-	assert.NoError(t, testEngine.CreateIndexes(&IndexOrUnique{}))
+	assert.NoError(t, testEngine.CreateIndexes(context.Background(), &IndexOrUnique{}))
 
-	assert.NoError(t, testEngine.CreateUniques(&IndexOrUnique{}))
+	assert.NoError(t, testEngine.CreateUniques(context.Background(), &IndexOrUnique{}))
 
-	assert.NoError(t, testEngine.DropIndexes(&IndexOrUnique{}))
+	assert.NoError(t, testEngine.DropIndexes(context.Background(), &IndexOrUnique{}))
 }
 
 func TestMetaInfo(t *testing.T) {
 	assert.NoError(t, prepareEngine())
-	assert.NoError(t, testEngine.Sync2(new(CustomTableName), new(IndexOrUnique)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(CustomTableName), new(IndexOrUnique)))
 
-	tables, err := testEngine.DBMetas()
+	tables, err := testEngine.DBMetas(context.Background())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(tables))
 	tableNames := []string{tables[0].Name, tables[1].Name}
@@ -205,13 +206,13 @@ func TestMetaInfo(t *testing.T) {
 func TestCharst(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.DropTables("user_charset")
+	err := testEngine.DropTables(context.Background(), "user_charset")
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.Charset("utf8").Table("user_charset").CreateTable(&Userinfo{})
+	err = testEngine.Charset("utf8").Table("user_charset").CreateTable(context.Background(), &Userinfo{})
 	if err != nil {
 		t.Error(err)
 		panic(err)

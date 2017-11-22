@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -18,7 +19,7 @@ func TestTransaction(t *testing.T) {
 	assertSync(t, new(Userinfo))
 
 	counter := func() {
-		total, err := testEngine.Count(&Userinfo{})
+		total, err := testEngine.Count(context.Background(), &Userinfo{})
 		if err != nil {
 			t.Error(err)
 		}
@@ -39,7 +40,7 @@ func TestTransaction(t *testing.T) {
 	}
 
 	user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
-	_, err = session.Insert(&user1)
+	_, err = session.Insert(context.Background(), &user1)
 	if err != nil {
 		session.Rollback()
 		t.Error(err)
@@ -48,7 +49,7 @@ func TestTransaction(t *testing.T) {
 	}
 
 	user2 := Userinfo{Username: "yyy"}
-	_, err = session.Where("(id) = ?", 0).Update(&user2)
+	_, err = session.Where("(id) = ?", 0).Update(context.Background(), &user2)
 	if err != nil {
 		session.Rollback()
 		fmt.Println(err)
@@ -56,7 +57,7 @@ func TestTransaction(t *testing.T) {
 		return
 	}
 
-	_, err = session.Delete(&user2)
+	_, err = session.Delete(context.Background(), &user2)
 	if err != nil {
 		session.Rollback()
 		t.Error(err)
@@ -78,7 +79,7 @@ func TestCombineTransaction(t *testing.T) {
 	assertSync(t, new(Userinfo))
 
 	counter := func() {
-		total, err := testEngine.Count(&Userinfo{})
+		total, err := testEngine.Count(context.Background(), &Userinfo{})
 		if err != nil {
 			t.Error(err)
 		}
@@ -97,21 +98,21 @@ func TestCombineTransaction(t *testing.T) {
 	}
 
 	user1 := Userinfo{Username: "xiaoxiao2", Departname: "dev", Alias: "lunny", Created: time.Now()}
-	_, err = session.Insert(&user1)
+	_, err = session.Insert(context.Background(), &user1)
 	if err != nil {
 		session.Rollback()
 		t.Error(err)
 		panic(err)
 	}
 	user2 := Userinfo{Username: "zzz"}
-	_, err = session.Where("id = ?", 0).Update(&user2)
+	_, err = session.Where("id = ?", 0).Update(context.Background(), &user2)
 	if err != nil {
 		session.Rollback()
 		t.Error(err)
 		panic(err)
 	}
 
-	_, err = session.Exec("delete from userinfo where username = ?", user2.Username)
+	_, err = session.Exec(context.Background(), "delete from userinfo where username = ?", user2.Username)
 	if err != nil {
 		session.Rollback()
 		t.Error(err)
@@ -139,7 +140,7 @@ func TestCombineTransactionSameMapper(t *testing.T) {
 	assertSync(t, new(Userinfo))
 
 	counter := func() {
-		total, err := testEngine.Count(&Userinfo{})
+		total, err := testEngine.Count(context.Background(), &Userinfo{})
 		if err != nil {
 			t.Error(err)
 		}
@@ -159,7 +160,7 @@ func TestCombineTransactionSameMapper(t *testing.T) {
 	}
 
 	user1 := Userinfo{Username: "xiaoxiao2", Departname: "dev", Alias: "lunny", Created: time.Now()}
-	_, err = session.Insert(&user1)
+	_, err = session.Insert(context.Background(), &user1)
 	if err != nil {
 		session.Rollback()
 		t.Error(err)
@@ -168,7 +169,7 @@ func TestCombineTransactionSameMapper(t *testing.T) {
 	}
 
 	user2 := Userinfo{Username: "zzz"}
-	_, err = session.Where("(id) = ?", 0).Update(&user2)
+	_, err = session.Where("(id) = ?", 0).Update(context.Background(), &user2)
 	if err != nil {
 		session.Rollback()
 		t.Error(err)
@@ -176,7 +177,7 @@ func TestCombineTransactionSameMapper(t *testing.T) {
 		return
 	}
 
-	_, err = session.Exec("delete from `Userinfo` where `Username` = ?", user2.Username)
+	_, err = session.Exec(context.Background(), "delete from `Userinfo` where `Username` = ?", user2.Username)
 	if err != nil {
 		session.Rollback()
 		t.Error(err)

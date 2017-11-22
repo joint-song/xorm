@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"testing"
 
 	"github.com/go-xorm/core"
@@ -26,12 +27,12 @@ func TestGonicMapperID(t *testing.T) {
 		testEngine.SetMapper(oldMapper)
 	}()
 
-	err := testEngine.CreateTables(new(IDGonicMapper))
+	err := testEngine.CreateTables(context.Background(), new(IDGonicMapper))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	tables, err := testEngine.DBMetas()
+	tables, err := testEngine.DBMetas(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,12 +64,12 @@ func TestSameMapperID(t *testing.T) {
 		testEngine.SetMapper(oldMapper)
 	}()
 
-	err := testEngine.CreateTables(new(IDSameMapper))
+	err := testEngine.CreateTables(context.Background(), new(IDSameMapper))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	tables, err := testEngine.DBMetas()
+	tables, err := testEngine.DBMetas(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}

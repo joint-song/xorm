@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -24,7 +25,7 @@ func TestCacheFind(t *testing.T) {
 	cacher := NewLRUCacher2(NewMemoryStore(), time.Hour, 10000)
 	testEngine.SetDefaultCacher(cacher)
 
-	assert.NoError(t, testEngine.Sync2(new(MailBox)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(MailBox)))
 
 	var inserts = []*MailBox{
 		{
@@ -38,11 +39,11 @@ func TestCacheFind(t *testing.T) {
 			Password: "pass2",
 		},
 	}
-	_, err := testEngine.Insert(inserts[0], inserts[1])
+	_, err := testEngine.Insert(context.Background(), inserts[0], inserts[1])
 	assert.NoError(t, err)
 
 	var boxes []MailBox
-	assert.NoError(t, testEngine.Find(&boxes))
+	assert.NoError(t, testEngine.Find(context.Background(), &boxes))
 	assert.EqualValues(t, 2, len(boxes))
 	for i, box := range boxes {
 		assert.Equal(t, inserts[i].Id, box.Id)
@@ -51,7 +52,7 @@ func TestCacheFind(t *testing.T) {
 	}
 
 	boxes = make([]MailBox, 0, 2)
-	assert.NoError(t, testEngine.Find(&boxes))
+	assert.NoError(t, testEngine.Find(context.Background(), &boxes))
 	assert.EqualValues(t, 2, len(boxes))
 	for i, box := range boxes {
 		assert.Equal(t, inserts[i].Id, box.Id)
@@ -60,7 +61,7 @@ func TestCacheFind(t *testing.T) {
 	}
 
 	boxes = make([]MailBox, 0, 2)
-	assert.NoError(t, testEngine.Alias("a").Where("a.id > -1").Asc("a.id").Find(&boxes))
+	assert.NoError(t, testEngine.Alias("a").Where("a.id > -1").Asc("a.id").Find(context.Background(), &boxes))
 	assert.EqualValues(t, 2, len(boxes))
 	for i, box := range boxes {
 		assert.Equal(t, inserts[i].Id, box.Id)
@@ -75,7 +76,7 @@ func TestCacheFind(t *testing.T) {
 	}
 
 	boxes2 := make([]MailBox4, 0, 2)
-	assert.NoError(t, testEngine.Table("mail_box").Where("mail_box.id > -1").Asc("mail_box.id").Find(&boxes2))
+	assert.NoError(t, testEngine.Table("mail_box").Where("mail_box.id > -1").Asc("mail_box.id").Find(context.Background(), &boxes2))
 	assert.EqualValues(t, 2, len(boxes2))
 	for i, box := range boxes2 {
 		assert.Equal(t, inserts[i].Id, box.Id)
@@ -99,7 +100,7 @@ func TestCacheFind2(t *testing.T) {
 	cacher := NewLRUCacher2(NewMemoryStore(), time.Hour, 10000)
 	testEngine.SetDefaultCacher(cacher)
 
-	assert.NoError(t, testEngine.Sync2(new(MailBox2)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(MailBox2)))
 
 	var inserts = []*MailBox2{
 		{
@@ -113,11 +114,11 @@ func TestCacheFind2(t *testing.T) {
 			Password: "pass2",
 		},
 	}
-	_, err := testEngine.Insert(inserts[0], inserts[1])
+	_, err := testEngine.Insert(context.Background(), inserts[0], inserts[1])
 	assert.NoError(t, err)
 
 	var boxes []MailBox2
-	assert.NoError(t, testEngine.Find(&boxes))
+	assert.NoError(t, testEngine.Find(context.Background(), &boxes))
 	assert.EqualValues(t, 2, len(boxes))
 	for i, box := range boxes {
 		assert.Equal(t, inserts[i].Id, box.Id)
@@ -126,7 +127,7 @@ func TestCacheFind2(t *testing.T) {
 	}
 
 	boxes = make([]MailBox2, 0, 2)
-	assert.NoError(t, testEngine.Find(&boxes))
+	assert.NoError(t, testEngine.Find(context.Background(), &boxes))
 	assert.EqualValues(t, 2, len(boxes))
 	for i, box := range boxes {
 		assert.Equal(t, inserts[i].Id, box.Id)
@@ -150,7 +151,7 @@ func TestCacheGet(t *testing.T) {
 	cacher := NewLRUCacher2(NewMemoryStore(), time.Hour, 10000)
 	testEngine.SetDefaultCacher(cacher)
 
-	assert.NoError(t, testEngine.Sync2(new(MailBox3)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(MailBox3)))
 
 	var inserts = []*MailBox3{
 		{
@@ -158,18 +159,18 @@ func TestCacheGet(t *testing.T) {
 			Password: "pass1",
 		},
 	}
-	_, err := testEngine.Insert(inserts[0])
+	_, err := testEngine.Insert(context.Background(), inserts[0])
 	assert.NoError(t, err)
 
 	var box1 MailBox3
-	has, err := testEngine.Where("id = ?", inserts[0].Id).Get(&box1)
+	has, err := testEngine.Where("id = ?", inserts[0].Id).Get(context.Background(), &box1)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, "user1", box1.Username)
 	assert.EqualValues(t, "pass1", box1.Password)
 
 	var box2 MailBox3
-	has, err = testEngine.Where("id = ?", inserts[0].Id).Get(&box2)
+	has, err = testEngine.Where("id = ?", inserts[0].Id).Get(context.Background(), &box2)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, "user1", box2.Username)

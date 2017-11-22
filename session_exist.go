@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -13,7 +14,7 @@ import (
 )
 
 // Exist returns true if the record exist otherwise return false
-func (session *Session) Exist(bean ...interface{}) (bool, error) {
+func (session *Session) Exist(ctx context.Context, bean ...interface{}) (bool, error) {
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -67,7 +68,7 @@ func (session *Session) Exist(bean ...interface{}) (bool, error) {
 		args = session.statement.RawParams
 	}
 
-	rows, err := session.queryRows(sqlStr, args...)
+	rows, err := session.queryRows(ctx, sqlStr, args...)
 	if err != nil {
 		return false, err
 	}

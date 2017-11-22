@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -905,13 +906,13 @@ func (db *postgres) DropIndexSql(tableName string, index *core.Index) string {
 	return fmt.Sprintf("DROP INDEX %v", quote(idxName))
 }
 
-func (db *postgres) IsColumnExist(tableName, colName string) (bool, error) {
+func (db *postgres) IsColumnExist(ctx context.Context, tableName, colName string) (bool, error) {
 	args := []interface{}{tableName, colName}
 	query := "SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = $1" +
 		" AND column_name = $2"
 	db.LogSQL(query, args)
 
-	rows, err := db.DB().Query(query, args...)
+	rows, err := db.DB().Query(ctx, query, args...)
 	if err != nil {
 		return false, err
 	}
@@ -920,23 +921,23 @@ func (db *postgres) IsColumnExist(tableName, colName string) (bool, error) {
 	return rows.Next(), nil
 }
 
-func (db *postgres) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
+func (db *postgres) GetColumns(ctx context.Context, tableName string) ([]string, map[string]*core.Column, error) {
 	// FIXME: the schema should be replaced by user custom's
 	args := []interface{}{tableName, "public"}
 	s := `SELECT column_name, column_default, is_nullable, data_type, character_maximum_length, numeric_precision, numeric_precision_radix ,
-    CASE WHEN p.contype = 'p' THEN true ELSE false END AS primarykey,
-    CASE WHEN p.contype = 'u' THEN true ELSE false END AS uniquekey
+	CASE WHEN p.contype = 'p' THEN true ELSE false END AS primarykey,
+	CASE WHEN p.contype = 'u' THEN true ELSE false END AS uniquekey
 FROM pg_attribute f
-    JOIN pg_class c ON c.oid = f.attrelid JOIN pg_type t ON t.oid = f.atttypid
-    LEFT JOIN pg_attrdef d ON d.adrelid = c.oid AND d.adnum = f.attnum
-    LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
-    LEFT JOIN pg_constraint p ON p.conrelid = c.oid AND f.attnum = ANY (p.conkey)
-    LEFT JOIN pg_class AS g ON p.confrelid = g.oid
-    LEFT JOIN INFORMATION_SCHEMA.COLUMNS s ON s.column_name=f.attname AND c.relname=s.table_name
+	JOIN pg_class c ON c.oid = f.attrelid JOIN pg_type t ON t.oid = f.atttypid
+	LEFT JOIN pg_attrdef d ON d.adrelid = c.oid AND d.adnum = f.attnum
+	LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
+	LEFT JOIN pg_constraint p ON p.conrelid = c.oid AND f.attnum = ANY (p.conkey)
+	LEFT JOIN pg_class AS g ON p.confrelid = g.oid
+	LEFT JOIN INFORMATION_SCHEMA.COLUMNS s ON s.column_name=f.attname AND c.relname=s.table_name
 WHERE c.relkind = 'r'::char AND c.relname = $1 AND s.table_schema = $2 AND f.attnum > 0 ORDER BY f.attnum;`
 	db.LogSQL(s, args)
 
-	rows, err := db.DB().Query(s, args...)
+	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1022,13 +1023,13 @@ WHERE c.relkind = 'r'::char AND c.relname = $1 AND s.table_schema = $2 AND f.att
 	return colSeq, cols, nil
 }
 
-func (db *postgres) GetTables() ([]*core.Table, error) {
+func (db *postgres) GetTables(ctx context.Context) ([]*core.Table, error) {
 	// FIXME: replace public to user customrize schema
 	args := []interface{}{"public"}
 	s := fmt.Sprintf("SELECT tablename FROM pg_tables WHERE schemaname = $1")
 	db.LogSQL(s, args)
 
-	rows, err := db.DB().Query(s, args...)
+	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -1048,13 +1049,13 @@ func (db *postgres) GetTables() ([]*core.Table, error) {
 	return tables, nil
 }
 
-func (db *postgres) GetIndexes(tableName string) (map[string]*core.Index, error) {
+func (db *postgres) GetIndexes(ctx context.Context, tableName string) (map[string]*core.Index, error) {
 	// FIXME: replace the public schema to user specify schema
 	args := []interface{}{"public", tableName}
 	s := fmt.Sprintf("SELECT indexname, indexdef FROM pg_indexes WHERE schemaname=$1 AND tablename=$2")
 	db.LogSQL(s, args)
 
-	rows, err := db.DB().Query(s, args...)
+	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {
 		return nil, err
 	}

@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -24,15 +25,15 @@ func TestUpdateMap(t *testing.T) {
 		Age  int
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UpdateTable)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(UpdateTable)))
 	var tb = UpdateTable{
 		Name: "test",
 		Age:  35,
 	}
-	_, err := testEngine.Insert(&tb)
+	_, err := testEngine.Insert(context.Background(), &tb)
 	assert.NoError(t, err)
 
-	cnt, err := testEngine.Table("update_table").Where("id = ?", tb.Id).Update(map[string]interface{}{
+	cnt, err := testEngine.Table("update_table").Where("id = ?", tb.Id).Update(context.Background(), map[string]interface{}{
 		"name": "test2",
 		"age":  36,
 	})
@@ -49,29 +50,29 @@ func TestUpdateLimit(t *testing.T) {
 		Age  int
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UpdateTable2)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(UpdateTable2)))
 	var tb = UpdateTable2{
 		Name: "test1",
 		Age:  35,
 	}
-	cnt, err := testEngine.Insert(&tb)
+	cnt, err := testEngine.Insert(context.Background(), &tb)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	tb.Name = "test2"
 	tb.Id = 0
-	cnt, err = testEngine.Insert(&tb)
+	cnt, err = testEngine.Insert(context.Background(), &tb)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	cnt, err = testEngine.OrderBy("name desc").Limit(1).Update(&UpdateTable2{
+	cnt, err = testEngine.OrderBy("name desc").Limit(1).Update(context.Background(), &UpdateTable2{
 		Age: 30,
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	var uts []UpdateTable2
-	err = testEngine.Find(&uts)
+	err = testEngine.Find(context.Background(), &uts)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(uts))
 	assert.EqualValues(t, 35, uts[0].Age)
@@ -85,11 +86,11 @@ type ForUpdate struct {
 
 func setupForUpdate(engine EngineInterface) error {
 	v := new(ForUpdate)
-	err := testEngine.DropTables(v)
+	err := testEngine.DropTables(context.Background(), v)
 	if err != nil {
 		return err
 	}
-	err = testEngine.CreateTables(v)
+	err = testEngine.CreateTables(context.Background(), v)
 	if err != nil {
 		return err
 	}
@@ -101,7 +102,7 @@ func setupForUpdate(engine EngineInterface) error {
 	}
 
 	for _, f := range list {
-		_, err = testEngine.Insert(f)
+		_, err = testEngine.Insert(context.Background(), f)
 		if err != nil {
 			return err
 		}
@@ -138,7 +139,7 @@ func TestForUpdate(t *testing.T) {
 	fList := make([]ForUpdate, 0)
 	session1.ForUpdate()
 	session1.Where("(id) = ?", 1)
-	err = session1.Find(&fList)
+	err = session1.Find(context.Background(), &fList)
 	switch {
 	case err != nil:
 		t.Error(err)
@@ -159,7 +160,7 @@ func TestForUpdate(t *testing.T) {
 	go func() {
 		f2 := new(ForUpdate)
 		session2.Where("(id) = ?", 1).ForUpdate()
-		has, err := session2.Get(f2) // wait release lock
+		has, err := session2.Get(context.Background(), f2) // wait release lock
 		switch {
 		case err != nil:
 			t.Error(err)
@@ -176,7 +177,7 @@ func TestForUpdate(t *testing.T) {
 	go func() {
 		f3 := new(ForUpdate)
 		session3.Where("(id) = ?", 1)
-		has, err := session3.Get(f3) // wait release lock
+		has, err := session3.Get(context.Background(), f3) // wait release lock
 		switch {
 		case err != nil:
 			t.Error(err)
@@ -194,7 +195,7 @@ func TestForUpdate(t *testing.T) {
 	f := new(ForUpdate)
 	f.Name = "updated by session1"
 	session1.Where("(id) = ?", 1)
-	session1.Update(f)
+	session1.Update(context.Background(), f)
 
 	// release lock
 	err = session1.Commit()
@@ -214,9 +215,9 @@ func TestWithIn(t *testing.T) {
 	}
 
 	assert.NoError(t, prepareEngine())
-	assert.NoError(t, testEngine.Sync(new(temp3)))
+	assert.NoError(t, testEngine.Sync(context.Background(), new(temp3)))
 
-	testEngine.Insert(&[]temp3{
+	testEngine.Insert(context.Background(), &[]temp3{
 		{
 			Name: "user1",
 		},
@@ -228,7 +229,7 @@ func TestWithIn(t *testing.T) {
 		},
 	})
 
-	cnt, err := testEngine.In("Id", 1, 2, 3, 4).Update(&temp3{Name: "aa"}, &temp3{Name: "user1"})
+	cnt, err := testEngine.In("Id", 1, 2, 3, 4).Update(context.Background(), &temp3{Name: "aa"}, &temp3{Name: "user1"})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, cnt)
 }
@@ -268,7 +269,7 @@ func TestUpdateMap2(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(UpdateMustCols))
 
-	_, err := testEngine.Table("update_must_cols").Where("id =?", 1).Update(map[string]interface{}{
+	_, err := testEngine.Table("update_must_cols").Where("id =?", 1).Update(context.Background(), map[string]interface{}{
 		"bool": true,
 	})
 	if err != nil {
@@ -281,12 +282,12 @@ func TestUpdate1(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))
 
-	_, err := testEngine.Insert(&Userinfo{
+	_, err := testEngine.Insert(context.Background(), &Userinfo{
 		Username: "user1",
 	})
 
 	var ori Userinfo
-	has, err := testEngine.Get(&ori)
+	has, err := testEngine.Get(context.Background(), &ori)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -298,7 +299,7 @@ func TestUpdate1(t *testing.T) {
 
 	// update by id
 	user := Userinfo{Username: "xxx", Height: 1.2}
-	cnt, err := testEngine.ID(ori.Uid).Update(&user)
+	cnt, err := testEngine.ID(ori.Uid).Update(context.Background(), &user)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -311,7 +312,7 @@ func TestUpdate1(t *testing.T) {
 	}
 
 	condi := Condi{"username": "zzz", "departname": ""}
-	cnt, err = testEngine.Table(&user).ID(ori.Uid).Update(&condi)
+	cnt, err = testEngine.Table(&user).ID(ori.Uid).Update(context.Background(), &condi)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -323,12 +324,12 @@ func TestUpdate1(t *testing.T) {
 		return
 	}
 
-	cnt, err = testEngine.Update(&Userinfo{Username: "yyy"}, &user)
+	cnt, err = testEngine.Update(context.Background(), &Userinfo{Username: "yyy"}, &user)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
-	total, err := testEngine.Count(&user)
+	total, err := testEngine.Count(context.Background(), &user)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -344,7 +345,7 @@ func TestUpdate1(t *testing.T) {
 	// nullable update
 	{
 		user := &Userinfo{Username: "not null data", Height: 180.5}
-		_, err := testEngine.Insert(user)
+		_, err := testEngine.Insert(context.Background(), user)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -357,7 +358,7 @@ func TestUpdate1(t *testing.T) {
 			And("departname = ?", "").
 			And("detail_id = ?", 0).
 			And("is_man = ?", 0).
-			Get(&Userinfo{})
+			Get(context.Background(), &Userinfo{})
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -371,7 +372,7 @@ func TestUpdate1(t *testing.T) {
 		updatedUser := &Userinfo{Username: "null data"}
 		cnt, err = testEngine.ID(userID).
 			Nullable("height", "departname", "is_man", "created").
-			Update(updatedUser)
+			Update(context.Background(), updatedUser)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -389,7 +390,7 @@ func TestUpdate1(t *testing.T) {
 			And("is_man IS NULL").
 			And("created IS NULL").
 			And("detail_id = ?", 0).
-			Get(&Userinfo{})
+			Get(context.Background(), &Userinfo{})
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -400,7 +401,7 @@ func TestUpdate1(t *testing.T) {
 			panic(err)
 		}
 
-		cnt, err = testEngine.ID(userID).Delete(&Userinfo{})
+		cnt, err = testEngine.ID(userID).Delete(context.Background(), &Userinfo{})
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -412,14 +413,14 @@ func TestUpdate1(t *testing.T) {
 		}
 	}
 
-	err = testEngine.StoreEngine("Innodb").Sync2(&Article{})
+	err = testEngine.StoreEngine("Innodb").Sync2(context.Background(), &Article{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	defer func() {
-		err = testEngine.DropTables(&Article{})
+		err = testEngine.DropTables(context.Background(), &Article{})
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -427,7 +428,7 @@ func TestUpdate1(t *testing.T) {
 	}()
 
 	a := &Article{0, "1", "2", "3", "4", "5", 2}
-	cnt, err = testEngine.Insert(a)
+	cnt, err = testEngine.Insert(context.Background(), a)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -445,7 +446,7 @@ func TestUpdate1(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.ID(a.Id).Update(&Article{Name: "6"})
+	cnt, err = testEngine.ID(a.Id).Update(context.Background(), &Article{Name: "6"})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -461,27 +462,27 @@ func TestUpdate1(t *testing.T) {
 	var s = "test"
 
 	col1 := &UpdateAllCols{Ptr: &s}
-	err = testEngine.Sync(col1)
+	err = testEngine.Sync(context.Background(), col1)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	_, err = testEngine.Insert(col1)
+	_, err = testEngine.Insert(context.Background(), col1)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	col2 := &UpdateAllCols{col1.Id, true, "", nil}
-	_, err = testEngine.ID(col2.Id).AllCols().Update(col2)
+	_, err = testEngine.ID(col2.Id).AllCols().Update(context.Background(), col2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	col3 := &UpdateAllCols{}
-	has, err = testEngine.ID(col2.Id).Get(col3)
+	has, err = testEngine.ID(col2.Id).Get(context.Background(), col3)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -504,13 +505,13 @@ func TestUpdate1(t *testing.T) {
 	{
 
 		col1 := &UpdateMustCols{}
-		err = testEngine.Sync(col1)
+		err = testEngine.Sync(context.Background(), col1)
 		if err != nil {
 			t.Error(err)
 			panic(err)
 		}
 
-		_, err = testEngine.Insert(col1)
+		_, err = testEngine.Insert(context.Background(), col1)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -519,14 +520,14 @@ func TestUpdate1(t *testing.T) {
 		col2 := &UpdateMustCols{col1.Id, true, ""}
 		boolStr := testEngine.GetColumnMapper().Obj2Table("Bool")
 		stringStr := testEngine.GetColumnMapper().Obj2Table("String")
-		_, err = testEngine.ID(col2.Id).MustCols(boolStr, stringStr).Update(col2)
+		_, err = testEngine.ID(col2.Id).MustCols(boolStr, stringStr).Update(context.Background(), col2)
 		if err != nil {
 			t.Error(err)
 			panic(err)
 		}
 
 		col3 := &UpdateMustCols{}
-		has, err := testEngine.ID(col2.Id).Get(col3)
+		has, err := testEngine.ID(col2.Id).Get(context.Background(), col3)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -554,34 +555,34 @@ func TestUpdateIncrDecr(t *testing.T) {
 	col1 := &UpdateIncr{
 		Name: "test",
 	}
-	assert.NoError(t, testEngine.Sync(col1))
+	assert.NoError(t, testEngine.Sync(context.Background(), col1))
 
-	_, err := testEngine.Insert(col1)
+	_, err := testEngine.Insert(context.Background(), col1)
 	assert.NoError(t, err)
 
 	colName := testEngine.GetColumnMapper().Obj2Table("Cnt")
 
-	cnt, err := testEngine.ID(col1.Id).Incr(colName).Update(col1)
+	cnt, err := testEngine.ID(col1.Id).Incr(colName).Update(context.Background(), col1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	newCol := new(UpdateIncr)
-	has, err := testEngine.ID(col1.Id).Get(newCol)
+	has, err := testEngine.ID(col1.Id).Get(context.Background(), newCol)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 1, newCol.Cnt)
 
-	cnt, err = testEngine.ID(col1.Id).Decr(colName).Update(col1)
+	cnt, err = testEngine.ID(col1.Id).Decr(colName).Update(context.Background(), col1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	newCol = new(UpdateIncr)
-	has, err = testEngine.ID(col1.Id).Get(newCol)
+	has, err = testEngine.ID(col1.Id).Get(context.Background(), newCol)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 0, newCol.Cnt)
 
-	cnt, err = testEngine.ID(col1.Id).Cols(colName).Incr(colName).Update(col1)
+	cnt, err = testEngine.ID(col1.Id).Cols(colName).Incr(colName).Update(context.Background(), col1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 }
@@ -615,23 +616,23 @@ func TestUpdateUpdated(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	di := new(UpdatedUpdate)
-	err := testEngine.Sync2(di)
+	err := testEngine.Sync2(context.Background(), di)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = testEngine.Insert(&UpdatedUpdate{})
+	_, err = testEngine.Insert(context.Background(), &UpdatedUpdate{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	ci := &UpdatedUpdate{}
-	_, err = testEngine.ID(1).Update(ci)
+	_, err = testEngine.ID(1).Update(context.Background(), ci)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	has, err := testEngine.ID(1).Get(di)
+	has, err := testEngine.ID(1).Get(context.Background(), di)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -644,49 +645,49 @@ func TestUpdateUpdated(t *testing.T) {
 	fmt.Println("ci:", ci, "di:", di)
 
 	di2 := new(UpdatedUpdate2)
-	err = testEngine.Sync2(di2)
+	err = testEngine.Sync2(context.Background(), di2)
 	assert.NoError(t, err)
 
 	now := time.Now()
 	var di20 UpdatedUpdate2
-	cnt, err := testEngine.Insert(&di20)
+	cnt, err := testEngine.Insert(context.Background(), &di20)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 	assert.True(t, now.Unix() <= di20.Updated)
 
 	var di21 UpdatedUpdate2
-	has, err = testEngine.ID(di20.Id).Get(&di21)
+	has, err = testEngine.ID(di20.Id).Get(context.Background(), &di21)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, di20.Updated, di21.Updated)
 
 	ci2 := &UpdatedUpdate2{}
-	_, err = testEngine.ID(1).Update(ci2)
+	_, err = testEngine.ID(1).Update(context.Background(), ci2)
 	assert.NoError(t, err)
 
-	has, err = testEngine.ID(1).Get(di2)
+	has, err = testEngine.ID(1).Get(context.Background(), di2)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, ci2.Updated, di2.Updated)
 	assert.True(t, ci2.Updated >= di21.Updated)
 
 	di3 := new(UpdatedUpdate3)
-	err = testEngine.Sync2(di3)
+	err = testEngine.Sync2(context.Background(), di3)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = testEngine.Insert(&UpdatedUpdate3{})
+	_, err = testEngine.Insert(context.Background(), &UpdatedUpdate3{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	ci3 := &UpdatedUpdate3{}
-	_, err = testEngine.ID(1).Update(ci3)
+	_, err = testEngine.ID(1).Update(context.Background(), ci3)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	has, err = testEngine.ID(1).Get(di3)
+	has, err = testEngine.ID(1).Get(context.Background(), di3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -699,23 +700,23 @@ func TestUpdateUpdated(t *testing.T) {
 	fmt.Println("ci3:", ci3, "di3:", di3)
 
 	di4 := new(UpdatedUpdate4)
-	err = testEngine.Sync2(di4)
+	err = testEngine.Sync2(context.Background(), di4)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = testEngine.Insert(&UpdatedUpdate4{})
+	_, err = testEngine.Insert(context.Background(), &UpdatedUpdate4{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	ci4 := &UpdatedUpdate4{}
-	_, err = testEngine.ID(1).Update(ci4)
+	_, err = testEngine.ID(1).Update(context.Background(), ci4)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	has, err = testEngine.ID(1).Get(di4)
+	has, err = testEngine.ID(1).Get(context.Background(), di4)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -728,22 +729,22 @@ func TestUpdateUpdated(t *testing.T) {
 	fmt.Println("ci4:", ci4, "di4:", di4)
 
 	di5 := new(UpdatedUpdate5)
-	err = testEngine.Sync2(di5)
+	err = testEngine.Sync2(context.Background(), di5)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = testEngine.Insert(&UpdatedUpdate5{})
+	_, err = testEngine.Insert(context.Background(), &UpdatedUpdate5{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	ci5 := &UpdatedUpdate5{}
-	_, err = testEngine.ID(1).Update(ci5)
+	_, err = testEngine.ID(1).Update(context.Background(), ci5)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	has, err = testEngine.ID(1).Get(di5)
+	has, err = testEngine.ID(1).Get(context.Background(), di5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -779,13 +780,13 @@ func TestUpdateSameMapper(t *testing.T) {
 
 	assertSync(t, new(Userinfo))
 
-	_, err := testEngine.Insert(&Userinfo{
+	_, err := testEngine.Insert(context.Background(), &Userinfo{
 		Username: "user1",
 	})
 	assert.NoError(t, err)
 
 	var ori Userinfo
-	has, err := testEngine.Get(&ori)
+	has, err := testEngine.Get(context.Background(), &ori)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -796,7 +797,7 @@ func TestUpdateSameMapper(t *testing.T) {
 	}
 	// update by id
 	user := Userinfo{Username: "xxx", Height: 1.2}
-	cnt, err := testEngine.ID(ori.Uid).Update(&user)
+	cnt, err := testEngine.ID(ori.Uid).Update(context.Background(), &user)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -809,7 +810,7 @@ func TestUpdateSameMapper(t *testing.T) {
 	}
 
 	condi := Condi{"Username": "zzz", "Departname": ""}
-	cnt, err = testEngine.Table(&user).ID(ori.Uid).Update(&condi)
+	cnt, err = testEngine.Table(&user).ID(ori.Uid).Update(context.Background(), &condi)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -822,13 +823,13 @@ func TestUpdateSameMapper(t *testing.T) {
 		return
 	}
 
-	cnt, err = testEngine.Update(&Userinfo{Username: "yyy"}, &user)
+	cnt, err = testEngine.Update(context.Background(), &Userinfo{Username: "yyy"}, &user)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	total, err := testEngine.Count(&user)
+	total, err := testEngine.Count(context.Background(), &user)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -841,14 +842,14 @@ func TestUpdateSameMapper(t *testing.T) {
 		return
 	}
 
-	err = testEngine.Sync(&Article{})
+	err = testEngine.Sync(context.Background(), &Article{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	defer func() {
-		err = testEngine.DropTables(&Article{})
+		err = testEngine.DropTables(context.Background(), &Article{})
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -856,7 +857,7 @@ func TestUpdateSameMapper(t *testing.T) {
 	}()
 
 	a := &Article{0, "1", "2", "3", "4", "5", 2}
-	cnt, err = testEngine.Insert(a)
+	cnt, err = testEngine.Insert(context.Background(), a)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -874,7 +875,7 @@ func TestUpdateSameMapper(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.ID(a.Id).Update(&Article{Name: "6"})
+	cnt, err = testEngine.ID(a.Id).Update(context.Background(), &Article{Name: "6"})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -888,27 +889,27 @@ func TestUpdateSameMapper(t *testing.T) {
 	}
 
 	col1 := &UpdateAllCols{}
-	err = testEngine.Sync(col1)
+	err = testEngine.Sync(context.Background(), col1)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	_, err = testEngine.Insert(col1)
+	_, err = testEngine.Insert(context.Background(), col1)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	col2 := &UpdateAllCols{col1.Id, true, "", nil}
-	_, err = testEngine.ID(col2.Id).AllCols().Update(col2)
+	_, err = testEngine.ID(col2.Id).AllCols().Update(context.Background(), col2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	col3 := &UpdateAllCols{}
-	has, err = testEngine.ID(col2.Id).Get(col3)
+	has, err = testEngine.ID(col2.Id).Get(context.Background(), col3)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -930,13 +931,13 @@ func TestUpdateSameMapper(t *testing.T) {
 
 	{
 		col1 := &UpdateMustCols{}
-		err = testEngine.Sync(col1)
+		err = testEngine.Sync(context.Background(), col1)
 		if err != nil {
 			t.Error(err)
 			panic(err)
 		}
 
-		_, err = testEngine.Insert(col1)
+		_, err = testEngine.Insert(context.Background(), col1)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -945,14 +946,14 @@ func TestUpdateSameMapper(t *testing.T) {
 		col2 := &UpdateMustCols{col1.Id, true, ""}
 		boolStr := testEngine.GetColumnMapper().Obj2Table("Bool")
 		stringStr := testEngine.GetColumnMapper().Obj2Table("String")
-		_, err = testEngine.ID(col2.Id).MustCols(boolStr, stringStr).Update(col2)
+		_, err = testEngine.ID(col2.Id).MustCols(boolStr, stringStr).Update(context.Background(), col2)
 		if err != nil {
 			t.Error(err)
 			panic(err)
 		}
 
 		col3 := &UpdateMustCols{}
-		has, err := testEngine.ID(col2.Id).Get(col3)
+		has, err := testEngine.ID(col2.Id).Get(context.Background(), col3)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -976,19 +977,19 @@ func TestUpdateSameMapper(t *testing.T) {
 	{
 
 		col1 := &UpdateIncr{}
-		err = testEngine.Sync(col1)
+		err = testEngine.Sync(context.Background(), col1)
 		if err != nil {
 			t.Error(err)
 			panic(err)
 		}
 
-		_, err = testEngine.Insert(col1)
+		_, err = testEngine.Insert(context.Background(), col1)
 		if err != nil {
 			t.Error(err)
 			panic(err)
 		}
 
-		cnt, err := testEngine.ID(col1.Id).Incr("`Cnt`").Update(col1)
+		cnt, err := testEngine.ID(col1.Id).Incr("`Cnt`").Update(context.Background(), col1)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -1000,7 +1001,7 @@ func TestUpdateSameMapper(t *testing.T) {
 		}
 
 		newCol := new(UpdateIncr)
-		has, err := testEngine.ID(col1.Id).Get(newCol)
+		has, err := testEngine.ID(col1.Id).Get(context.Background(), newCol)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -1022,14 +1023,14 @@ func TestUseBool(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))
 
-	cnt1, err := testEngine.Count(&Userinfo{})
+	cnt1, err := testEngine.Count(context.Background(), &Userinfo{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	users := make([]Userinfo, 0)
-	err = testEngine.Find(&users)
+	err = testEngine.Find(context.Background(), &users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -1041,7 +1042,7 @@ func TestUseBool(t *testing.T) {
 		}
 	}
 
-	cnt2, err := testEngine.UseBool().Update(&Userinfo{IsMan: true})
+	cnt2, err := testEngine.UseBool().Update(context.Background(), &Userinfo{IsMan: true})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -1053,7 +1054,7 @@ func TestUseBool(t *testing.T) {
 		  panic(err)*/
 	}
 
-	_, err = testEngine.Update(&Userinfo{IsMan: true})
+	_, err = testEngine.Update(context.Background(), &Userinfo{IsMan: true})
 	if err == nil {
 		err = errors.New("error condition")
 		t.Error(err)
@@ -1065,13 +1066,13 @@ func TestBool(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))
 
-	_, err := testEngine.UseBool().Update(&Userinfo{IsMan: true})
+	_, err := testEngine.UseBool().Update(context.Background(), &Userinfo{IsMan: true})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 	users := make([]Userinfo, 0)
-	err = testEngine.Find(&users)
+	err = testEngine.Find(context.Background(), &users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -1084,13 +1085,13 @@ func TestBool(t *testing.T) {
 		}
 	}
 
-	_, err = testEngine.UseBool().Update(&Userinfo{IsMan: false})
+	_, err = testEngine.UseBool().Update(context.Background(), &Userinfo{IsMan: false})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 	users = make([]Userinfo, 0)
-	err = testEngine.Find(&users)
+	err = testEngine.Find(context.Background(), &users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -1114,13 +1115,13 @@ func TestNoUpdate(t *testing.T) {
 
 	assertSync(t, new(NoUpdate))
 
-	cnt, err := testEngine.Insert(&NoUpdate{
+	cnt, err := testEngine.Insert(context.Background(), &NoUpdate{
 		Content: "test",
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	_, err = testEngine.ID(1).Update(&NoUpdate{})
+	_, err = testEngine.ID(1).Update(context.Background(), &NoUpdate{})
 	assert.Error(t, err)
 	assert.EqualValues(t, "No content found to be updated", err.Error())
 }
@@ -1146,11 +1147,11 @@ func TestNewUpdate(t *testing.T) {
 
 	targetUsr := TbUserInfo{Phone: "13126564922"}
 	changeUsr := TbUserInfo{Token: "ABCDEFG"}
-	af, err := testEngine.Update(&changeUsr, &targetUsr)
+	af, err := testEngine.Update(context.Background(), &changeUsr, &targetUsr)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, af)
 
-	af, err = testEngine.Table(new(TbUserInfo)).Where("phone=?", 13126564922).Update(&changeUsr)
+	af, err = testEngine.Table(new(TbUserInfo)).Where("phone=?", 13126564922).Update(context.Background(), &changeUsr)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, af)
 }
@@ -1165,7 +1166,7 @@ func TestUpdateUpdate(t *testing.T) {
 
 	assertSync(t, new(PublicKeyUpdate))
 
-	cnt, err := testEngine.ID(1).Cols("updated_unix").Update(&PublicKeyUpdate{
+	cnt, err := testEngine.ID(1).Cols("updated_unix").Update(context.Background(), &PublicKeyUpdate{
 		UpdatedUnix: time.Now().Unix(),
 	})
 	assert.NoError(t, err)
@@ -1187,7 +1188,7 @@ func TestCreatedUpdated2(t *testing.T) {
 	var s = CreatedUpdatedStruct{
 		Name: "test",
 	}
-	cnt, err := testEngine.Insert(&s)
+	cnt, err := testEngine.Insert(context.Background(), &s)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 	assert.EqualValues(t, s.UpdateAt.Unix(), s.CreateAt.Unix())
@@ -1200,14 +1201,14 @@ func TestCreatedUpdated2(t *testing.T) {
 		UpdateAt: s.UpdateAt,
 	}
 
-	cnt, err = testEngine.ID(1).Update(&s1)
+	cnt, err = testEngine.ID(1).Update(context.Background(), &s1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 	assert.EqualValues(t, s.CreateAt.Unix(), s1.CreateAt.Unix())
 	assert.True(t, s1.UpdateAt.Unix() > s.UpdateAt.Unix())
 
 	var s2 CreatedUpdatedStruct
-	has, err := testEngine.ID(1).Get(&s2)
+	has, err := testEngine.ID(1).Get(context.Background(), &s2)
 	assert.NoError(t, err)
 	assert.True(t, has)
 
@@ -1229,10 +1230,10 @@ func TestUpdateMapCondition(t *testing.T) {
 	var c = UpdateMapCondition{
 		String: "string",
 	}
-	_, err := testEngine.Insert(&c)
+	_, err := testEngine.Insert(context.Background(), &c)
 	assert.NoError(t, err)
 
-	cnt, err := testEngine.Update(&UpdateMapCondition{
+	cnt, err := testEngine.Update(context.Background(), &UpdateMapCondition{
 		String: "string1",
 	}, map[string]interface{}{
 		"id": c.Id,
@@ -1241,7 +1242,7 @@ func TestUpdateMapCondition(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 
 	var c2 UpdateMapCondition
-	has, err := testEngine.ID(c.Id).Get(&c2)
+	has, err := testEngine.ID(c.Id).Get(context.Background(), &c2)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, "string1", c2.String)

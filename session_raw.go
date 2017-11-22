@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"database/sql"
 	"reflect"
 	"time"
@@ -21,7 +22,7 @@ func (session *Session) queryPreprocess(sqlStr *string, paramStr ...interface{})
 	session.lastSQLArgs = paramStr
 }
 
-func (session *Session) queryRows(sqlStr string, args ...interface{}) (*core.Rows, error) {
+func (session *Session) queryRows(ctx context.Context, sqlStr string, args ...interface{}) (*core.Rows, error) {
 	defer session.resetStatement()
 
 	session.queryPreprocess(&sqlStr, args...)
@@ -56,34 +57,34 @@ func (session *Session) queryRows(sqlStr string, args ...interface{}) (*core.Row
 
 		if session.prepareStmt {
 			// don't clear stmt since session will cache them
-			stmt, err := session.doPrepare(db, sqlStr)
+			stmt, err := session.doPrepare(ctx, db, sqlStr)
 			if err != nil {
 				return nil, err
 			}
 
-			rows, err := stmt.Query(args...)
+			rows, err := stmt.Query(ctx, args...)
 			if err != nil {
 				return nil, err
 			}
 			return rows, nil
 		}
 
-		rows, err := db.Query(sqlStr, args...)
+		rows, err := db.Query(ctx, sqlStr, args...)
 		if err != nil {
 			return nil, err
 		}
 		return rows, nil
 	}
 
-	rows, err := session.tx.Query(sqlStr, args...)
+	rows, err := session.tx.Query(ctx, sqlStr, args...)
 	if err != nil {
 		return nil, err
 	}
 	return rows, nil
 }
 
-func (session *Session) queryRow(sqlStr string, args ...interface{}) *core.Row {
-	return core.NewRow(session.queryRows(sqlStr, args...))
+func (session *Session) queryRow(ctx context.Context, sqlStr string, args ...interface{}) *core.Row {
+	return core.NewRow(session.queryRows(ctx, sqlStr, args...))
 }
 
 func value2Bytes(rawValue *reflect.Value) ([]byte, error) {
@@ -138,8 +139,8 @@ func rows2maps(rows *core.Rows) (resultsSlice []map[string][]byte, err error) {
 	return resultsSlice, nil
 }
 
-func (session *Session) queryBytes(sqlStr string, args ...interface{}) ([]map[string][]byte, error) {
-	rows, err := session.queryRows(sqlStr, args...)
+func (session *Session) queryBytes(ctx context.Context, sqlStr string, args ...interface{}) ([]map[string][]byte, error) {
+	rows, err := session.queryRows(ctx, sqlStr, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +149,7 @@ func (session *Session) queryBytes(sqlStr string, args ...interface{}) ([]map[st
 	return rows2maps(rows)
 }
 
-func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, error) {
+func (session *Session) exec(ctx context.Context, sqlStr string, args ...interface{}) (sql.Result, error) {
 	defer session.resetStatement()
 
 	session.queryPreprocess(&sqlStr, args...)
@@ -174,30 +175,30 @@ func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, er
 	}
 
 	if !session.isAutoCommit {
-		return session.tx.Exec(sqlStr, args...)
+		return session.tx.ExecContext(ctx, sqlStr, args...)
 	}
 
 	if session.prepareStmt {
-		stmt, err := session.doPrepare(session.DB(), sqlStr)
+		stmt, err := session.doPrepare(ctx, session.DB(), sqlStr)
 		if err != nil {
 			return nil, err
 		}
 
-		res, err := stmt.Exec(args...)
+		res, err := stmt.ExecContext(ctx, args...)
 		if err != nil {
 			return nil, err
 		}
 		return res, nil
 	}
 
-	return session.DB().Exec(sqlStr, args...)
+	return session.DB().ExecContext(ctx, sqlStr, args...)
 }
 
 // Exec raw sql
-func (session *Session) Exec(sqlStr string, args ...interface{}) (sql.Result, error) {
+func (session *Session) Exec(ctx context.Context, sqlStr string, args ...interface{}) (sql.Result, error) {
 	if session.isAutoClose {
 		defer session.Close()
 	}
 
-	return session.exec(sqlStr, args...)
+	return session.exec(ctx, sqlStr, args...)
 }

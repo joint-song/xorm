@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,16 +19,16 @@ func TestIterate(t *testing.T) {
 		IsMan bool
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UserIterate)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(UserIterate)))
 
-	cnt, err := testEngine.Insert(&UserIterate{
+	cnt, err := testEngine.Insert(context.Background(), &UserIterate{
 		IsMan: true,
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	cnt = 0
-	err = testEngine.Iterate(new(UserIterate), func(i int, bean interface{}) error {
+	err = testEngine.Iterate(context.Background(), new(UserIterate), func(i int, bean interface{}) error {
 		user := bean.(*UserIterate)
 		assert.EqualValues(t, 1, user.Id)
 		assert.EqualValues(t, true, user.IsMan)
@@ -46,11 +47,11 @@ func TestBufferIterate(t *testing.T) {
 		IsMan bool
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UserBufferIterate)))
+	assert.NoError(t, testEngine.Sync2(context.Background(), new(UserBufferIterate)))
 
 	var size = 20
 	for i := 0; i < size; i++ {
-		cnt, err := testEngine.Insert(&UserBufferIterate{
+		cnt, err := testEngine.Insert(context.Background(), &UserBufferIterate{
 			IsMan: true,
 		})
 		assert.NoError(t, err)
@@ -58,7 +59,7 @@ func TestBufferIterate(t *testing.T) {
 	}
 
 	var cnt = 0
-	err := testEngine.BufferSize(9).Iterate(new(UserBufferIterate), func(i int, bean interface{}) error {
+	err := testEngine.BufferSize(9).Iterate(context.Background(), new(UserBufferIterate), func(i int, bean interface{}) error {
 		user := bean.(*UserBufferIterate)
 		assert.EqualValues(t, cnt+1, user.Id)
 		assert.EqualValues(t, true, user.IsMan)
@@ -69,7 +70,7 @@ func TestBufferIterate(t *testing.T) {
 	assert.EqualValues(t, size, cnt)
 
 	cnt = 0
-	err = testEngine.Limit(20).BufferSize(9).Iterate(new(UserBufferIterate), func(i int, bean interface{}) error {
+	err = testEngine.Limit(20).BufferSize(9).Iterate(context.Background(), new(UserBufferIterate), func(i int, bean interface{}) error {
 		user := bean.(*UserBufferIterate)
 		assert.EqualValues(t, cnt+1, user.Id)
 		assert.EqualValues(t, true, user.IsMan)
@@ -80,7 +81,7 @@ func TestBufferIterate(t *testing.T) {
 	assert.EqualValues(t, size, cnt)
 
 	cnt = 0
-	err = testEngine.Limit(7).BufferSize(9).Iterate(new(UserBufferIterate), func(i int, bean interface{}) error {
+	err = testEngine.Limit(7).BufferSize(9).Iterate(context.Background(), new(UserBufferIterate), func(i int, bean interface{}) error {
 		user := bean.(*UserBufferIterate)
 		assert.EqualValues(t, cnt+1, user.Id)
 		assert.EqualValues(t, true, user.IsMan)

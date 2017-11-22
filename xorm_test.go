@@ -1,6 +1,7 @@
 package xorm
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -62,7 +63,7 @@ func createEngine(dbType, connStr string) error {
 		}
 	}
 
-	tables, err := testEngine.DBMetas()
+	tables, err := testEngine.DBMetas(context.Background())
 	if err != nil {
 		return err
 	}
@@ -70,7 +71,7 @@ func createEngine(dbType, connStr string) error {
 	for _, table := range tables {
 		tableNames = append(tableNames, table.Name)
 	}
-	if err = testEngine.DropTables(tableNames...); err != nil {
+	if err = testEngine.DropTables(context.Background(), tableNames...); err != nil {
 		return err
 	}
 	return nil
@@ -123,7 +124,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestPing(t *testing.T) {
-	if err := testEngine.Ping(); err != nil {
+	if err := testEngine.Ping(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 }

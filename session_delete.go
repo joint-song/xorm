@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -12,7 +13,7 @@ import (
 	"github.com/go-xorm/core"
 )
 
-func (session *Session) cacheDelete(table *core.Table, tableName, sqlStr string, args ...interface{}) error {
+func (session *Session) cacheDelete(ctx context.Context, table *core.Table, tableName, sqlStr string, args ...interface{}) error {
 	if table == nil ||
 		session.tx != nil {
 		return ErrCacheFailed
@@ -31,7 +32,7 @@ func (session *Session) cacheDelete(table *core.Table, tableName, sqlStr string,
 	pkColumns := table.PKColumns()
 	ids, err := core.GetCacheSql(cacher, tableName, newsql, args)
 	if err != nil {
-		resultsSlice, err := session.queryBytes(newsql, args...)
+		resultsSlice, err := session.queryBytes(ctx, newsql, args...)
 		if err != nil {
 			return err
 		}
@@ -74,7 +75,7 @@ func (session *Session) cacheDelete(table *core.Table, tableName, sqlStr string,
 }
 
 // Delete records, bean's non-empty fields are conditions
-func (session *Session) Delete(bean interface{}) (int64, error) {
+func (session *Session) Delete(ctx context.Context, bean interface{}) (int64, error) {
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -200,11 +201,11 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	}
 
 	if cacher := session.engine.getCacher2(table); cacher != nil && session.statement.UseCache {
-		session.cacheDelete(table, tableNameNoQuote, deleteSQL, argsForCache...)
+		session.cacheDelete(ctx, table, tableNameNoQuote, deleteSQL, argsForCache...)
 	}
 
 	session.statement.RefTable = table
-	res, err := session.exec(realSQL, condArgs...)
+	res, err := session.exec(ctx, realSQL, condArgs...)
 	if err != nil {
 		return 0, err
 	}

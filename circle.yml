@@ -28,6 +28,6 @@ jobs:
 
       # specify any bash command here prefixed with `run: `
       - run: git clone https://github.com/micanzhang/core $GOPATH/src/github.com/go-xorm/core
-      - run: go get github.com.com/go-xorm/builder
+      - run: go get github.com/go-xorm/builder
       - run: go build -v
       - run: go test -v -race ./...

@@ -1,34 +1,83 @@
-# Golang CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-go/ for more details
 version: 2
 jobs:
-  build:
+  go:1.8:
     docker:
-      # specify the version
       - image: circleci/golang:1.8
       - image: circleci/mysql:latest
         environment:
           - MYSQL_ALLOW_EMPTY_PASSWORD=true
-          - MYSQL_DATABASE=core_test
+          - MYSQL_DATABASE=xorm_test
           - MYSQL_USER=root
-
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
-
-    #### TEMPLATE_NOTE: go expects specific checkout path representing url
-    #### expecting it in the form of
-    ####   /go/src/github.com/circleci/go-tool
-    ####   /go/src/bitbucket.org/circleci/go-tool
+      - image: postgres:latest
+        environment:
+        - POSTGRES_DB=xorm_test
     working_directory: /go/src/github.com/go-xorm/xorm
     steps:
       - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            git clone https://github.com/micanzhang/core /go/src/github.com/go-xorm/core
+            go get -v -t -d ./...
+      - run:
+          name: Build
+          command: go build -race .
+      - run:
+          name: Test mysql
+          command: |
+            go test -v -race -db="mysql" -conn_str="root:@/xorm_test"
+            go test -v -race -db="mysql" -conn_str="root:@/xorm_test" -cache=true
+      - run:
+          name: Test postgres
+          command: |
+            go test -v -race -db="postgres" -conn_str="dbname=xorm_test sslmode=disable"
+            go test -v -race -db="postgres" -conn_str="dbname=xorm_test sslmode=disable" -cache=true
+      - run:
+          name: Test sqlite3
+          command: |
+            go test -v -race -db="sqlite3" -conn_str="./test.db"
+            go test -v -race -db="sqlite3" -conn_str="./test.db" -cache=true
+  go:latest:
+    docker:
+      - image: circleci/golang:latest
+      - image: circleci/mysql:latest
+        environment:
+          - MYSQL_ALLOW_EMPTY_PASSWORD=true
+          - MYSQL_DATABASE=xorm_test
+          - MYSQL_USER=root
+      - image: postgres:latest
+        environment:
+        - POSTGRES_DB=xorm_test
+    working_directory: /go/src/github.com/go-xorm/xorm
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            git clone https://github.com/micanzhang/core /go/src/github.com/go-xorm/core
+            go get -v -t -d ./...
+      - run:
+          name: Build
+          command: go build -race .
+      - run:
+          name: Test mysql
+          command: |
+            go test -v -race -db="mysql" -conn_str="root:@/xorm_test"
+            go test -v -race -db="mysql" -conn_str="root:@/xorm_test" -cache=true
+      - run:
+          name: Test postgres
+          command: |
+            go test -v -race -db="postgres" -conn_str="dbname=xorm_test sslmode=disable"
+            go test -v -race -db="postgres" -conn_str="dbname=xorm_test sslmode=disable" -cache=true
+      - run:
+          name: Test sqlite3
+          command: |
+            go test -v -race -db="sqlite3" -conn_str="./test.db"
+            go test -v -race -db="sqlite3" -conn_str="./test.db" -cache=true
 
-      # specify any bash command here prefixed with `run: `
-      - run: git clone https://github.com/micanzhang/core /go/src/github.com/go-xorm/core
-      - run: go get github.com/go-xorm/builder
-      - run: go get -v -t -d ./...
-      - run: go test -v -race . ./migrate
-      - run: go build .
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - go:1.8
+      - go:latest

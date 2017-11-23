@@ -651,7 +651,7 @@ func (db *oracle) MustDropTable(ctx context.Context, tableName string) error {
 	sql = "Drop Table \"" + tableName + "\""
 	db.LogSQL(sql, args)
 
-	_, err = db.DB().Exec(sql)
+	_, err = db.DB().Exec(ctx, sql)
 	return err
 }
 

@@ -1499,17 +1499,17 @@ func (engine *Engine) SumsInt(ctx context.Context, bean interface{}, colNames ..
 }
 
 // ImportFile SQL DDL file
-func (engine *Engine) ImportFile(ddlPath string) ([]sql.Result, error) {
+func (engine *Engine) ImportFile(ctx context.Context, ddlPath string) ([]sql.Result, error) {
 	file, err := os.Open(ddlPath)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
-	return engine.Import(file)
+	return engine.Import(ctx, file)
 }
 
 // Import SQL DDL from io.Reader
-func (engine *Engine) Import(r io.Reader) ([]sql.Result, error) {
+func (engine *Engine) Import(ctx context.Context, r io.Reader) ([]sql.Result, error) {
 	var results []sql.Result
 	var lastError error
 	scanner := bufio.NewScanner(r)
@@ -1535,7 +1535,7 @@ func (engine *Engine) Import(r io.Reader) ([]sql.Result, error) {
 		query := strings.Trim(scanner.Text(), " \t\n\r")
 		if len(query) > 0 {
 			engine.logSQL(query)
-			result, err := engine.DB().Exec(query)
+			result, err := engine.DB().Exec(ctx, query)
 			results = append(results, result)
 			if err != nil {
 				return nil, err

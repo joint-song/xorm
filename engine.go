@@ -51,6 +51,8 @@ type Engine struct {
 	tagHandlers map[string]tagHandler
 
 	engineGroup *EngineGroup
+
+	opts []Option
 }
 
 // BufferSize sets buffer size for iterate
@@ -258,8 +260,8 @@ func (engine *Engine) MapCacher(bean interface{}, cacher core.Cacher) error {
 }
 
 // NewDB provides an interface to operate database directly
-func (engine *Engine) NewDB() (*core.DB, error) {
-	return core.OpenDialect(engine.dialect)
+func (engine *Engine) NewDB(opts ...core.Option) (*core.DB, error) {
+	return core.OpenDialect(engine.dialect, opts...)
 }
 
 // DB return the wrapper of sql.DB

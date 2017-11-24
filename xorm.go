@@ -6,11 +6,9 @@ package xorm
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"runtime"
 	"sync"
-	"time"
 
 	"github.com/go-xorm/core"
 )
@@ -56,7 +54,7 @@ func init() {
 
 // NewEngine new a db manager according to the parameter. Currently support four
 // drivers
-func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
+func NewEngine(driverName string, dataSourceName string, opts ...Option) (*Engine, error) {
 	driver := core.QueryDriver(driverName)
 	if driver == nil {
 		return nil, fmt.Errorf("Unsupported driver name: %v", driverName)
@@ -76,7 +74,6 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	err = dialect.Init(db, uri, driverName, dataSourceName)
 	if err != nil {
 		return nil, err
@@ -85,23 +82,17 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 	engine := &Engine{
 		db:            db,
 		dialect:       dialect,
-		Tables:        make(map[reflect.Type]*core.Table),
+		Tables:        make(map[reflect.Type]*core.Table, 0),
 		mutex:         &sync.RWMutex{},
 		TagIdentifier: "xorm",
-		TZLocation:    time.Local,
 		tagHandlers:   defaultTagHandlers,
+		opts:          opts,
 	}
 
-	if uri.DbType == core.SQLITE {
-		engine.DatabaseTZ = time.UTC
-	} else {
-		engine.DatabaseTZ = time.Local
+	fns := append(defaultOptions(), opts...)
+	for _, fn := range fns {
+		fn(engine)
 	}
-
-	logger := NewSimpleLogger(os.Stdout)
-	logger.SetLevel(core.LOG_INFO)
-	engine.SetLogger(logger)
-	engine.SetMapper(core.NewCacheMapper(new(core.SnakeMapper)))
 
 	runtime.SetFinalizer(engine, close)
 
@@ -110,5 +101,5 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 
 // Clone clone an engine
 func (engine *Engine) Clone() (*Engine, error) {
-	return NewEngine(engine.DriverName(), engine.DataSourceName())
+	return NewEngine(engine.DriverName(), engine.DataSourceName(), engine.opts...)
 }

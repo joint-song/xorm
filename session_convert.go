@@ -35,27 +35,27 @@ func (session *Session) str2Time(col *core.Column, data string) (outTime time.Ti
 		sd, err := strconv.ParseInt(sdata, 10, 64)
 		if err == nil {
 			x = time.Unix(sd, 0)
-			session.engine.logger.Debugf("time(0) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+			session.engine.logger(context.Background()).Debugf("time(0) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		} else {
-			session.engine.logger.Debugf("time(0) err key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+			session.engine.logger(context.Background()).Debugf("time(0) err key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		}
 	} else if len(sdata) > 19 && strings.Contains(sdata, "-") {
 		x, err = time.ParseInLocation(time.RFC3339Nano, sdata, parseLoc)
-		session.engine.logger.Debugf("time(1) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+		session.engine.logger(context.Background()).Debugf("time(1) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		if err != nil {
 			x, err = time.ParseInLocation("2006-01-02 15:04:05.999999999", sdata, parseLoc)
-			session.engine.logger.Debugf("time(2) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+			session.engine.logger(context.Background()).Debugf("time(2) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		}
 		if err != nil {
 			x, err = time.ParseInLocation("2006-01-02 15:04:05.9999999 Z07:00", sdata, parseLoc)
-			session.engine.logger.Debugf("time(3) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+			session.engine.logger(context.Background()).Debugf("time(3) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		}
 	} else if len(sdata) == 19 && strings.Contains(sdata, "-") {
 		x, err = time.ParseInLocation("2006-01-02 15:04:05", sdata, parseLoc)
-		session.engine.logger.Debugf("time(4) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+		session.engine.logger(context.Background()).Debugf("time(4) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 	} else if len(sdata) == 10 && sdata[4] == '-' && sdata[7] == '-' {
 		x, err = time.ParseInLocation("2006-01-02", sdata, parseLoc)
-		session.engine.logger.Debugf("time(5) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+		session.engine.logger(context.Background()).Debugf("time(5) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 	} else if col.SQLType.Name == core.Time {
 		if strings.Contains(sdata, " ") {
 			ssd := strings.Split(sdata, " ")
@@ -69,7 +69,7 @@ func (session *Session) str2Time(col *core.Column, data string) (outTime time.Ti
 
 		st := fmt.Sprintf("2006-01-02 %v", sdata)
 		x, err = time.ParseInLocation("2006-01-02 15:04:05", st, parseLoc)
-		session.engine.logger.Debugf("time(6) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+		session.engine.logger(context.Background()).Debugf("time(6) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 	} else {
 		outErr = fmt.Errorf("unsupported time format %v", sdata)
 		return
@@ -106,7 +106,7 @@ func (session *Session) bytes2Value(ctx context.Context, col *core.Column, field
 		if len(data) > 0 {
 			err := json.Unmarshal(data, x.Interface())
 			if err != nil {
-				session.engine.logger.Error(err)
+				session.engine.logger(ctx).Error(err)
 				return err
 			}
 			fieldValue.Set(x.Elem())
@@ -120,7 +120,7 @@ func (session *Session) bytes2Value(ctx context.Context, col *core.Column, field
 			if len(data) > 0 {
 				err := json.Unmarshal(data, x.Interface())
 				if err != nil {
-					session.engine.logger.Error(err)
+					session.engine.logger(ctx).Error(err)
 					return err
 				}
 				fieldValue.Set(x.Elem())
@@ -133,7 +133,7 @@ func (session *Session) bytes2Value(ctx context.Context, col *core.Column, field
 				if len(data) > 0 {
 					err := json.Unmarshal(data, x.Interface())
 					if err != nil {
-						session.engine.logger.Error(err)
+						session.engine.logger(ctx).Error(err)
 						return err
 					}
 					fieldValue.Set(x.Elem())
@@ -262,7 +262,7 @@ func (session *Session) bytes2Value(ctx context.Context, col *core.Column, field
 			if len(data) > 0 {
 				err := json.Unmarshal(data, &x)
 				if err != nil {
-					session.engine.logger.Error(err)
+					session.engine.logger(ctx).Error(err)
 					return err
 				}
 				fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
@@ -273,7 +273,7 @@ func (session *Session) bytes2Value(ctx context.Context, col *core.Column, field
 			if len(data) > 0 {
 				err := json.Unmarshal(data, &x)
 				if err != nil {
-					session.engine.logger.Error(err)
+					session.engine.logger(ctx).Error(err)
 					return err
 				}
 				fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
@@ -565,7 +565,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 		if fieldValue.IsNil() {
 			return nil, nil
 		} else if !fieldValue.IsValid() {
-			session.engine.logger.Warn("the field[", col.FieldName, "] is invalid")
+			session.engine.logger(context.Background()).Warn("the field[", col.FieldName, "] is invalid")
 			return nil, nil
 		} else {
 			// !nashtsai! deference pointer type to instance type
@@ -607,14 +607,14 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 		if col.SQLType.IsText() {
 			bytes, err := json.Marshal(fieldValue.Interface())
 			if err != nil {
-				session.engine.logger.Error(err)
+				session.engine.logger(context.Background()).Error(err)
 				return 0, err
 			}
 			return string(bytes), nil
 		} else if col.SQLType.IsBlob() {
 			bytes, err := json.Marshal(fieldValue.Interface())
 			if err != nil {
-				session.engine.logger.Error(err)
+				session.engine.logger(context.Background()).Error(err)
 				return 0, err
 			}
 			return bytes, nil
@@ -623,7 +623,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 	case reflect.Complex64, reflect.Complex128:
 		bytes, err := json.Marshal(fieldValue.Interface())
 		if err != nil {
-			session.engine.logger.Error(err)
+			session.engine.logger(context.Background()).Error(err)
 			return 0, err
 		}
 		return string(bytes), nil
@@ -635,7 +635,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 		if col.SQLType.IsText() {
 			bytes, err := json.Marshal(fieldValue.Interface())
 			if err != nil {
-				session.engine.logger.Error(err)
+				session.engine.logger(context.Background()).Error(err)
 				return 0, err
 			}
 			return string(bytes), nil
@@ -648,7 +648,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 			} else {
 				bytes, err = json.Marshal(fieldValue.Interface())
 				if err != nil {
-					session.engine.logger.Error(err)
+					session.engine.logger(context.Background()).Error(err)
 					return 0, err
 				}
 			}

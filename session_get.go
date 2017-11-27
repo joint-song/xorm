@@ -129,7 +129,7 @@ func (session *Session) cacheGet(ctx context.Context, bean interface{}, sqlStr s
 
 	cacher := session.engine.getCacher2(session.statement.RefTable)
 	tableName := session.statement.TableName()
-	session.engine.logger.Debug("[cacheGet] find sql:", newsql, args)
+	session.engine.logger(ctx).Debug("[cacheGet] find sql:", newsql, args)
 	table := session.statement.RefTable
 	ids, err := core.GetCacheSql(cacher, tableName, newsql, args)
 	if err != nil {
@@ -165,19 +165,19 @@ func (session *Session) cacheGet(ctx context.Context, bean interface{}, sqlStr s
 		}
 
 		ids = []core.PK{pk}
-		session.engine.logger.Debug("[cacheGet] cache ids:", newsql, ids)
+		session.engine.logger(ctx).Debug("[cacheGet] cache ids:", newsql, ids)
 		err = core.PutCacheSql(cacher, ids, tableName, newsql, args)
 		if err != nil {
 			return false, err
 		}
 	} else {
-		session.engine.logger.Debug("[cacheGet] cache hit sql:", newsql, ids)
+		session.engine.logger(ctx).Debug("[cacheGet] cache hit sql:", newsql, ids)
 	}
 
 	if len(ids) > 0 {
 		structValue := reflect.Indirect(reflect.ValueOf(bean))
 		id := ids[0]
-		session.engine.logger.Debug("[cacheGet] get bean:", tableName, id)
+		session.engine.logger(ctx).Debug("[cacheGet] get bean:", tableName, id)
 		sid, err := id.ToString()
 		if err != nil {
 			return false, err
@@ -190,10 +190,10 @@ func (session *Session) cacheGet(ctx context.Context, bean interface{}, sqlStr s
 				return has, err
 			}
 
-			session.engine.logger.Debug("[cacheGet] cache bean:", tableName, id, cacheBean)
+			session.engine.logger(ctx).Debug("[cacheGet] cache bean:", tableName, id, cacheBean)
 			cacher.PutBean(tableName, sid, cacheBean)
 		} else {
-			session.engine.logger.Debug("[cacheGet] cache hit bean:", tableName, id, cacheBean)
+			session.engine.logger(ctx).Debug("[cacheGet] cache hit bean:", tableName, id, cacheBean)
 			has = true
 		}
 		structValue.Set(reflect.Indirect(reflect.ValueOf(cacheBean)))

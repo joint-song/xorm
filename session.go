@@ -288,12 +288,12 @@ func (session *Session) getField(dataStruct *reflect.Value, key string, table *c
 
 	fieldValue, err := col.ValueOfV(dataStruct)
 	if err != nil {
-		session.engine.logger.Error(err)
+		session.engine.logger(context.Background()).Error(err)
 		return nil
 	}
 
 	if !fieldValue.IsValid() || !fieldValue.CanSet() {
-		session.engine.logger.Warnf("table %v's column %v is not valid or cannot set", table.Name, key)
+		session.engine.logger(context.Background()).Warnf("table %v's column %v is not valid or cannot set", table.Name, key)
 		return nil
 	}
 	return fieldValue
@@ -587,7 +587,7 @@ func (session *Session) slice2Bean(ctx context.Context, scanResults []interface{
 						z, _ := t.Zone()
 						// set new location if database don't save timezone or give an incorrect timezone
 						if len(z) == 0 || t.Year() == 0 || t.Location().String() != dbTZ.String() { // !nashtsai! HACK tmp work around for lib/pq doesn't properly time with location
-							session.engine.logger.Debugf("empty zone key[%v] : %v | zone: %v | location: %+v\n", key, t, z, *t.Location())
+							session.engine.logger(ctx).Debugf("empty zone key[%v] : %v | zone: %v | location: %+v\n", key, t, z, *t.Location())
 							t = time.Date(t.Year(), t.Month(), t.Day(), t.Hour(),
 								t.Minute(), t.Second(), t.Nanosecond(), dbTZ)
 						}
@@ -605,7 +605,7 @@ func (session *Session) slice2Bean(ctx context.Context, scanResults []interface{
 							hasAssigned = true
 							t, err := session.byte2Time(col, d)
 							if err != nil {
-								session.engine.logger.Error("byte2Time error:", err.Error())
+								session.engine.logger(ctx).Error("byte2Time error:", err.Error())
 								hasAssigned = false
 							} else {
 								fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
@@ -614,7 +614,7 @@ func (session *Session) slice2Bean(ctx context.Context, scanResults []interface{
 							hasAssigned = true
 							t, err := session.str2Time(col, d)
 							if err != nil {
-								session.engine.logger.Error("byte2Time error:", err.Error())
+								session.engine.logger(ctx).Error("byte2Time error:", err.Error())
 								hasAssigned = false
 							} else {
 								fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
@@ -627,7 +627,7 @@ func (session *Session) slice2Bean(ctx context.Context, scanResults []interface{
 					// !<winxxp>! 增加支持sql.Scanner接口的结构，如sql.NullString
 					hasAssigned = true
 					if err := nulVal.Scan(vv.Interface()); err != nil {
-						session.engine.logger.Error("sql.Sanner error:", err.Error())
+						session.engine.logger(ctx).Error("sql.Sanner error:", err.Error())
 						hasAssigned = false
 					}
 				} else if col.SQLType.IsJson() {
@@ -821,7 +821,7 @@ func (session *Session) slice2Bean(ctx context.Context, scanResults []interface{
 func (session *Session) saveLastSQL(sql string, args ...interface{}) {
 	session.lastSQL = sql
 	session.lastSQLArgs = args
-	session.engine.logSQL(sql, args...)
+	session.engine.logSQL(context.Background(), sql, args...)
 }
 
 // LastSQL returns last query information

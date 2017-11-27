@@ -262,7 +262,7 @@ func (db *sqlite3) ForUpdateSql(query string) string {
 func (db *sqlite3) IsColumnExist(ctx context.Context, tableName, colName string) (bool, error) {
 	args := []interface{}{tableName}
 	query := "SELECT name FROM sqlite_master WHERE type='table' and name = ? and ((sql like '%`" + colName + "`%') or (sql like '%[" + colName + "]%'))"
-	db.LogSQL(query, args)
+	db.LogSQL(ctx, query, args)
 	rows, err := db.DB().Query(ctx, query, args...)
 	if err != nil {
 		return false, err
@@ -278,7 +278,7 @@ func (db *sqlite3) IsColumnExist(ctx context.Context, tableName, colName string)
 func (db *sqlite3) GetColumns(ctx context.Context, tableName string) ([]string, map[string]*core.Column, error) {
 	args := []interface{}{tableName}
 	s := "SELECT sql FROM sqlite_master WHERE type='table' and name = ?"
-	db.LogSQL(s, args)
+	db.LogSQL(ctx, s, args)
 	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {
 		return nil, nil, err
@@ -361,7 +361,7 @@ func (db *sqlite3) GetColumns(ctx context.Context, tableName string) ([]string, 
 func (db *sqlite3) GetTables(ctx context.Context) ([]*core.Table, error) {
 	args := []interface{}{}
 	s := "SELECT name FROM sqlite_master WHERE type='table'"
-	db.LogSQL(s, args)
+	db.LogSQL(ctx, s, args)
 
 	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {
@@ -387,7 +387,7 @@ func (db *sqlite3) GetTables(ctx context.Context) ([]*core.Table, error) {
 func (db *sqlite3) GetIndexes(ctx context.Context, tableName string) (map[string]*core.Index, error) {
 	args := []interface{}{tableName}
 	s := "SELECT sql FROM sqlite_master WHERE type='index' and tbl_name = ?"
-	db.LogSQL(s, args)
+	db.LogSQL(ctx, s, args)
 
 	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {

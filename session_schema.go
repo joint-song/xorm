@@ -21,7 +21,7 @@ func (session *Session) Ping(ctx context.Context) error {
 		defer session.Close()
 	}
 
-	session.engine.logger.Infof("PING DATABASE %v", session.engine.DriverName())
+	session.engine.logger(ctx).Infof("PING DATABASE %v", session.engine.DriverName())
 	return session.DB().PingContext(ctx)
 }
 
@@ -309,42 +309,42 @@ func (session *Session) Sync2(ctx context.Context, beans ...interface{}) error {
 							// currently only support mysql & postgres
 							if engine.dialect.DBType() == core.MYSQL ||
 								engine.dialect.DBType() == core.POSTGRES {
-								engine.logger.Infof("Table %s column %s change type from %s to %s\n",
+								engine.logger(ctx).Infof("Table %s column %s change type from %s to %s\n",
 									tbName, col.Name, curType, expectedType)
 								_, err = session.exec(ctx, engine.dialect.ModifyColumnSql(table.Name, col))
 							} else {
-								engine.logger.Warnf("Table %s column %s db type is %s, struct type is %s\n",
+								engine.logger(ctx).Warnf("Table %s column %s db type is %s, struct type is %s\n",
 									tbName, col.Name, curType, expectedType)
 							}
 						} else if strings.HasPrefix(curType, core.Varchar) && strings.HasPrefix(expectedType, core.Varchar) {
 							if engine.dialect.DBType() == core.MYSQL {
 								if oriCol.Length < col.Length {
-									engine.logger.Infof("Table %s column %s change type from varchar(%d) to varchar(%d)\n",
+									engine.logger(ctx).Infof("Table %s column %s change type from varchar(%d) to varchar(%d)\n",
 										tbName, col.Name, oriCol.Length, col.Length)
 									_, err = session.exec(ctx, engine.dialect.ModifyColumnSql(table.Name, col))
 								}
 							}
 						} else {
 							if !(strings.HasPrefix(curType, expectedType) && curType[len(expectedType)] == '(') {
-								engine.logger.Warnf("Table %s column %s db type is %s, struct type is %s",
+								engine.logger(ctx).Warnf("Table %s column %s db type is %s, struct type is %s",
 									tbName, col.Name, curType, expectedType)
 							}
 						}
 					} else if expectedType == core.Varchar {
 						if engine.dialect.DBType() == core.MYSQL {
 							if oriCol.Length < col.Length {
-								engine.logger.Infof("Table %s column %s change type from varchar(%d) to varchar(%d)\n",
+								engine.logger(ctx).Infof("Table %s column %s change type from varchar(%d) to varchar(%d)\n",
 									tbName, col.Name, oriCol.Length, col.Length)
 								_, err = session.exec(ctx, engine.dialect.ModifyColumnSql(table.Name, col))
 							}
 						}
 					}
 					if col.Default != oriCol.Default {
-						engine.logger.Warnf("Table %s Column %s db default is %s, struct default is %s",
+						engine.logger(ctx).Warnf("Table %s Column %s db default is %s, struct default is %s",
 							tbName, col.Name, oriCol.Default, col.Default)
 					}
 					if col.Nullable != oriCol.Nullable {
-						engine.logger.Warnf("Table %s Column %s db nullable is %v, struct nullable is %v",
+						engine.logger(ctx).Warnf("Table %s Column %s db nullable is %v, struct nullable is %v",
 							tbName, col.Name, oriCol.Nullable, col.Nullable)
 					}
 				} else {
@@ -429,7 +429,7 @@ func (session *Session) Sync2(ctx context.Context, beans ...interface{}) error {
 
 		for _, colName := range table.ColumnsSeq() {
 			if oriTable.GetColumn(colName) == nil {
-				engine.logger.Warnf("Table %s has column %s but struct has not related field", table.Name, colName)
+				engine.logger(ctx).Warnf("Table %s has column %s but struct has not related field", table.Name, colName)
 			}
 		}
 	}

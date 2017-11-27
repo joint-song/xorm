@@ -1,6 +1,7 @@
 package xorm
 
 import (
+	"context"
 	"os"
 	"time"
 
@@ -28,7 +29,7 @@ func TableMapperOption(im core.IMapper) Option {
 	}
 }
 
-func LoggerOption(l core.ILogger) Option {
+func LoggerOption(l func(context.Context) core.ILogger) Option {
 	return func(x *Engine) {
 		x.logger = l
 	}
@@ -106,7 +107,7 @@ func defaultOptions() []Option {
 	}
 
 	return []Option{
-		LoggerOption(logger),
+		LoggerOption(func(context.Context) core.ILogger { return logger }),
 		TZLocationOption(time.Local),
 		dbTZOption,
 		MapperOption(new(core.SnakeMapper)),

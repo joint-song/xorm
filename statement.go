@@ -6,6 +6,7 @@ package xorm
 
 import (
 	"bytes"
+	"context"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
@@ -137,13 +138,13 @@ func (statement *Statement) SQL(query interface{}, args ...interface{}) *Stateme
 		var err error
 		statement.RawSQL, statement.RawParams, err = query.(*builder.Builder).ToSQL()
 		if err != nil {
-			statement.Engine.logger.Error(err)
+			statement.Engine.logger(context.Background()).Error(err)
 		}
 	case string:
 		statement.RawSQL = query.(string)
 		statement.RawParams = args
 	default:
-		statement.Engine.logger.Error("unsupported sql type")
+		statement.Engine.logger(context.Background()).Error("unsupported sql type")
 	}
 
 	return statement
@@ -235,7 +236,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 		var err error
 		statement.RefTable, err = statement.Engine.autoMapType(v)
 		if err != nil {
-			statement.Engine.logger.Error(err)
+			statement.Engine.logger(context.Background()).Error(err)
 			return statement
 		}
 		statement.AltTableName = statement.Engine.tbName(v)
@@ -274,7 +275,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 
 		fieldValuePtr, err := col.ValueOf(bean)
 		if err != nil {
-			engine.logger.Error(err)
+			engine.logger(context.Background()).Error(err)
 			continue
 		}
 
@@ -311,7 +312,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 			if structConvert, ok := fieldValue.Addr().Interface().(core.Conversion); ok {
 				data, err := structConvert.ToDB()
 				if err != nil {
-					engine.logger.Error(err)
+					engine.logger(context.Background()).Error(err)
 				} else {
 					val = data
 				}
@@ -322,7 +323,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 		if structConvert, ok := fieldValue.Interface().(core.Conversion); ok {
 			data, err := structConvert.ToDB()
 			if err != nil {
-				engine.logger.Error(err)
+				engine.logger(context.Background()).Error(err)
 			} else {
 				val = data
 			}
@@ -443,7 +444,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 			if col.SQLType.IsText() {
 				bytes, err := json.Marshal(fieldValue.Interface())
 				if err != nil {
-					engine.logger.Error(err)
+					engine.logger(context.Background()).Error(err)
 					continue
 				}
 				val = string(bytes)
@@ -463,7 +464,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 				} else {
 					bytes, err = json.Marshal(fieldValue.Interface())
 					if err != nil {
-						engine.logger.Error(err)
+						engine.logger(context.Background()).Error(err)
 						continue
 					}
 					val = bytes

@@ -301,7 +301,7 @@ func (db *mysql) GetColumns(ctx context.Context, tableName string) ([]string, ma
 	args := []interface{}{db.DbName, tableName}
 	s := "SELECT `COLUMN_NAME`, `IS_NULLABLE`, `COLUMN_DEFAULT`, `COLUMN_TYPE`," +
 		" `COLUMN_KEY`, `EXTRA`,`COLUMN_COMMENT` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = ? AND `TABLE_NAME` = ?"
-	db.LogSQL(s, args)
+	db.LogSQL(ctx, s, args)
 
 	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {
@@ -411,7 +411,7 @@ func (db *mysql) GetTables(ctx context.Context) ([]*core.Table, error) {
 	args := []interface{}{db.DbName}
 	s := "SELECT `TABLE_NAME`, `ENGINE`, `TABLE_ROWS`, `AUTO_INCREMENT`, `TABLE_COMMENT` from " +
 		"`INFORMATION_SCHEMA`.`TABLES` WHERE `TABLE_SCHEMA`=? AND (`ENGINE`='MyISAM' OR `ENGINE` = 'InnoDB' OR `ENGINE` = 'TokuDB')"
-	db.LogSQL(s, args)
+	db.LogSQL(ctx, s, args)
 
 	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {
@@ -440,7 +440,7 @@ func (db *mysql) GetTables(ctx context.Context) ([]*core.Table, error) {
 func (db *mysql) GetIndexes(ctx context.Context, tableName string) (map[string]*core.Index, error) {
 	args := []interface{}{db.DbName, tableName}
 	s := "SELECT `INDEX_NAME`, `NON_UNIQUE`, `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`STATISTICS` WHERE `TABLE_SCHEMA` = ? AND `TABLE_NAME` = ?"
-	db.LogSQL(s, args)
+	db.LogSQL(ctx, s, args)
 
 	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {

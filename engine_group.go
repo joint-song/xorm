@@ -110,7 +110,7 @@ func (eg *EngineGroup) SetDefaultCacher(cacher core.Cacher) {
 }
 
 // SetLogger set the new logger
-func (eg *EngineGroup) SetLogger(logger core.ILogger) {
+func (eg *EngineGroup) SetLogger(logger func(context.Context) core.ILogger) {
 	eg.Engine.SetLogger(logger)
 	for i := 0; i < len(eg.slaves); i++ {
 		eg.slaves[i].SetLogger(logger)

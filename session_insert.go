@@ -410,7 +410,7 @@ func (session *Session) innerInsert(ctx context.Context, bean interface{}) (int6
 		if table.Version != "" && session.statement.checkVersion {
 			verValue, err := table.VersionColumn().ValueOf(bean)
 			if err != nil {
-				session.engine.logger.Error(err)
+				session.engine.logger(ctx).Error(err)
 			} else if verValue.IsValid() && verValue.CanSet() {
 				verValue.SetInt(1)
 			}
@@ -428,7 +428,7 @@ func (session *Session) innerInsert(ctx context.Context, bean interface{}) (int6
 
 		aiValue, err := table.AutoIncrColumn().ValueOf(bean)
 		if err != nil {
-			session.engine.logger.Error(err)
+			session.engine.logger(ctx).Error(err)
 		}
 
 		if aiValue == nil || !aiValue.IsValid() || !aiValue.CanSet() {
@@ -455,7 +455,7 @@ func (session *Session) innerInsert(ctx context.Context, bean interface{}) (int6
 		if table.Version != "" && session.statement.checkVersion {
 			verValue, err := table.VersionColumn().ValueOf(bean)
 			if err != nil {
-				session.engine.logger.Error(err)
+				session.engine.logger(ctx).Error(err)
 			} else if verValue.IsValid() && verValue.CanSet() {
 				verValue.SetInt(1)
 			}
@@ -473,7 +473,7 @@ func (session *Session) innerInsert(ctx context.Context, bean interface{}) (int6
 
 		aiValue, err := table.AutoIncrColumn().ValueOf(bean)
 		if err != nil {
-			session.engine.logger.Error(err)
+			session.engine.logger(ctx).Error(err)
 		}
 
 		if aiValue == nil || !aiValue.IsValid() || !aiValue.CanSet() {
@@ -498,7 +498,7 @@ func (session *Session) innerInsert(ctx context.Context, bean interface{}) (int6
 		if table.Version != "" && session.statement.checkVersion {
 			verValue, err := table.VersionColumn().ValueOf(bean)
 			if err != nil {
-				session.engine.logger.Error(err)
+				session.engine.logger(ctx).Error(err)
 			} else if verValue.IsValid() && verValue.CanSet() {
 				verValue.SetInt(1)
 			}
@@ -516,7 +516,7 @@ func (session *Session) innerInsert(ctx context.Context, bean interface{}) (int6
 
 		aiValue, err := table.AutoIncrColumn().ValueOf(bean)
 		if err != nil {
-			session.engine.logger.Error(err)
+			session.engine.logger(ctx).Error(err)
 		}
 
 		if aiValue == nil || !aiValue.IsValid() || !aiValue.CanSet() {
@@ -547,7 +547,7 @@ func (session *Session) cacheInsert(table *core.Table, tables ...string) error {
 
 	cacher := session.engine.getCacher2(table)
 	for _, t := range tables {
-		session.engine.logger.Debug("[cache] clear sql:", t)
+		session.engine.logger(context.Background()).Debug("[cache] clear sql:", t)
 		cacher.ClearIds(t)
 	}
 

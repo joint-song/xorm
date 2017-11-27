@@ -41,8 +41,7 @@ type Engine struct {
 	showSQL      bool
 	showExecTime bool
 
-	logger     core.ILogger
-	ctxLogger  func(ctx context.Context) core.ILogger
+	logger     func(ctx context.Context) core.ILogger
 	TZLocation *time.Location // The timezone of the application
 	DatabaseTZ *time.Location // The timezone of the database
 
@@ -72,7 +71,7 @@ func (engine *Engine) CondDeleted(colName string) builder.Cond {
 
 // ShowSQL show SQL statement or not on logger if log level is great than INFO
 func (engine *Engine) ShowSQL(show ...bool) {
-	engine.logger.ShowSQL(show...)
+	engine.logger(context.Background()).ShowSQL(show...)
 	if len(show) == 0 {
 		engine.showSQL = true
 	} else {
@@ -90,19 +89,19 @@ func (engine *Engine) ShowExecTime(show ...bool) {
 }
 
 // Logger return the logger interface
-func (engine *Engine) Logger() core.ILogger {
+func (engine *Engine) Logger() func(context.Context) core.ILogger {
 	return engine.logger
 }
 
 // SetLogger set the new logger
-func (engine *Engine) SetLogger(logger core.ILogger) {
+func (engine *Engine) SetLogger(logger func(context.Context) core.ILogger) {
 	engine.logger = logger
 	engine.dialect.SetLogger(logger)
 }
 
 // SetLogLevel sets the logger level
 func (engine *Engine) SetLogLevel(level core.LogLevel) {
-	engine.logger.SetLevel(level)
+	engine.logger(context.Background()).SetLevel(level)
 }
 
 // SetDisableGlobalCache disable global cache or not
@@ -294,12 +293,12 @@ func (engine *Engine) Ping(ctx context.Context) error {
 }
 
 // logging sql
-func (engine *Engine) logSQL(sqlStr string, sqlArgs ...interface{}) {
+func (engine *Engine) logSQL(ctx context.Context, sqlStr string, sqlArgs ...interface{}) {
 	if engine.showSQL && !engine.showExecTime {
 		if len(sqlArgs) > 0 {
-			engine.logger.Infof("[SQL] %v %#v", sqlStr, sqlArgs)
+			engine.logger(ctx).Infof("[SQL] %v %#v", sqlStr, sqlArgs)
 		} else {
-			engine.logger.Infof("[SQL] %v", sqlStr)
+			engine.logger(ctx).Infof("[SQL] %v", sqlStr)
 		}
 	}
 }
@@ -841,7 +840,7 @@ func (engine *Engine) TableInfo(bean interface{}) *Table {
 	v := rValue(bean)
 	tb, err := engine.autoMapType(v)
 	if err != nil {
-		engine.logger.Error(err)
+		engine.logger(context.Background()).Error(err)
 	}
 	return &Table{tb, engine.tbName(v)}
 }
@@ -1045,15 +1044,15 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 
 	if hasCacheTag {
 		if engine.Cacher != nil { // !nash! use engine's cacher if provided
-			engine.logger.Info("enable cache on table:", table.Name)
+			engine.logger(context.Background()).Info("enable cache on table:", table.Name)
 			table.Cacher = engine.Cacher
 		} else {
-			engine.logger.Info("enable LRU cache on table:", table.Name)
+			engine.logger(context.Background()).Info("enable LRU cache on table:", table.Name)
 			table.Cacher = NewLRUCacher2(NewMemoryStore(), time.Hour, 10000) // !nashtsai! HACK use LRU cacher for now
 		}
 	}
 	if hasNoCacheTag {
-		engine.logger.Info("no cache on table:", table.Name)
+		engine.logger(context.Background()).Info("no cache on table:", table.Name)
 		table.Cacher = nil
 	}
 
@@ -1097,7 +1096,7 @@ func (engine *Engine) IdOfV(rv reflect.Value) core.PK {
 func (engine *Engine) IDOfV(rv reflect.Value) core.PK {
 	pk, err := engine.idOfV(rv)
 	if err != nil {
-		engine.logger.Error(err)
+		engine.logger(context.Background()).Error(err)
 		return nil
 	}
 	return pk
@@ -1536,7 +1535,7 @@ func (engine *Engine) Import(ctx context.Context, r io.Reader) ([]sql.Result, er
 	for scanner.Scan() {
 		query := strings.Trim(scanner.Text(), " \t\n\r")
 		if len(query) > 0 {
-			engine.logSQL(query)
+			engine.logSQL(ctx, query)
 			result, err := engine.DB().Exec(ctx, query)
 			results = append(results, result)
 			if err != nil {

@@ -636,7 +636,7 @@ func (db *oracle) TableCheckSql(tableName string) (string, []interface{}) {
 
 func (db *oracle) MustDropTable(ctx context.Context, tableName string) error {
 	sql, args := db.TableCheckSql(tableName)
-	db.LogSQL(sql, args)
+	db.LogSQL(ctx, sql, args)
 
 	rows, err := db.DB().Query(ctx, sql, args...)
 	if err != nil {
@@ -649,7 +649,7 @@ func (db *oracle) MustDropTable(ctx context.Context, tableName string) error {
 	}
 
 	sql = "Drop Table \"" + tableName + "\""
-	db.LogSQL(sql, args)
+	db.LogSQL(ctx, sql, args)
 
 	_, err = db.DB().Exec(ctx, sql)
 	return err
@@ -665,7 +665,7 @@ func (db *oracle) IsColumnExist(ctx context.Context, tableName, colName string) 
 	args := []interface{}{tableName, colName}
 	query := "SELECT column_name FROM USER_TAB_COLUMNS WHERE table_name = :1" +
 		" AND column_name = :2"
-	db.LogSQL(query, args)
+	db.LogSQL(ctx, query, args)
 
 	rows, err := db.DB().Query(ctx, query, args...)
 	if err != nil {
@@ -683,7 +683,7 @@ func (db *oracle) GetColumns(ctx context.Context, tableName string) ([]string, m
 	args := []interface{}{tableName}
 	s := "SELECT column_name,data_default,data_type,data_length,data_precision,data_scale," +
 		"nullable FROM USER_TAB_COLUMNS WHERE table_name = :1"
-	db.LogSQL(s, args)
+	db.LogSQL(ctx, s, args)
 
 	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {
@@ -780,7 +780,7 @@ func (db *oracle) GetColumns(ctx context.Context, tableName string) ([]string, m
 func (db *oracle) GetTables(ctx context.Context) ([]*core.Table, error) {
 	args := []interface{}{}
 	s := "SELECT table_name FROM user_tables"
-	db.LogSQL(s, args)
+	db.LogSQL(ctx, s, args)
 
 	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {
@@ -805,7 +805,7 @@ func (db *oracle) GetIndexes(ctx context.Context, tableName string) (map[string]
 	args := []interface{}{tableName}
 	s := "SELECT t.column_name,i.uniqueness,i.index_name FROM user_ind_columns t,user_indexes i " +
 		"WHERE t.index_name = i.index_name and t.table_name = i.table_name and t.table_name =:1"
-	db.LogSQL(s, args)
+	db.LogSQL(ctx, s, args)
 
 	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {

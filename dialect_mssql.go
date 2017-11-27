@@ -349,7 +349,7 @@ func (db *mssql) GetColumns(ctx context.Context, tableName string) ([]string, ma
 		  LEFT OUTER JOIN 
     sys.indexes i ON ic.object_id = i.object_id AND ic.index_id = i.index_id
           where a.object_id=object_id('` + tableName + `')`
-	db.LogSQL(s, args)
+	db.LogSQL(ctx, s, args)
 
 	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {
@@ -414,7 +414,7 @@ func (db *mssql) GetColumns(ctx context.Context, tableName string) ([]string, ma
 func (db *mssql) GetTables(ctx context.Context) ([]*core.Table, error) {
 	args := []interface{}{}
 	s := `select name from sysobjects where xtype ='U'`
-	db.LogSQL(s, args)
+	db.LogSQL(ctx, s, args)
 
 	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {
@@ -449,7 +449,7 @@ INNER   JOIN SYS.COLUMNS C  ON IXS.OBJECT_ID=C.OBJECT_ID
 AND IXCS.COLUMN_ID=C.COLUMN_ID
 WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 `
-	db.LogSQL(s, args)
+	db.LogSQL(ctx, s, args)
 
 	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {

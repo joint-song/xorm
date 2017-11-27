@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
@@ -51,7 +52,7 @@ func (engine *Engine) buildConds(table *core.Table, bean interface{},
 
 		fieldValuePtr, err := col.ValueOf(bean)
 		if err != nil {
-			engine.logger.Error(err)
+			engine.logger(context.Background()).Error(err)
 			continue
 		}
 
@@ -146,7 +147,7 @@ func (engine *Engine) buildConds(table *core.Table, bean interface{},
 					if col.SQLType.IsText() {
 						bytes, err := json.Marshal(fieldValue.Interface())
 						if err != nil {
-							engine.logger.Error(err)
+							engine.logger(context.Background()).Error(err)
 							continue
 						}
 						val = string(bytes)
@@ -155,7 +156,7 @@ func (engine *Engine) buildConds(table *core.Table, bean interface{},
 						var err error
 						bytes, err = json.Marshal(fieldValue.Interface())
 						if err != nil {
-							engine.logger.Error(err)
+							engine.logger(context.Background()).Error(err)
 							continue
 						}
 						val = bytes
@@ -194,7 +195,7 @@ func (engine *Engine) buildConds(table *core.Table, bean interface{},
 			if col.SQLType.IsText() {
 				bytes, err := json.Marshal(fieldValue.Interface())
 				if err != nil {
-					engine.logger.Error(err)
+					engine.logger(context.Background()).Error(err)
 					continue
 				}
 				val = string(bytes)
@@ -211,7 +212,7 @@ func (engine *Engine) buildConds(table *core.Table, bean interface{},
 				} else {
 					bytes, err = json.Marshal(fieldValue.Interface())
 					if err != nil {
-						engine.logger.Error(err)
+						engine.logger(context.Background()).Error(err)
 						continue
 					}
 					val = bytes

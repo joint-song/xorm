@@ -910,7 +910,7 @@ func (db *postgres) IsColumnExist(ctx context.Context, tableName, colName string
 	args := []interface{}{tableName, colName}
 	query := "SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = $1" +
 		" AND column_name = $2"
-	db.LogSQL(query, args)
+	db.LogSQL(ctx, query, args)
 
 	rows, err := db.DB().Query(ctx, query, args...)
 	if err != nil {
@@ -935,7 +935,7 @@ FROM pg_attribute f
 	LEFT JOIN pg_class AS g ON p.confrelid = g.oid
 	LEFT JOIN INFORMATION_SCHEMA.COLUMNS s ON s.column_name=f.attname AND c.relname=s.table_name
 WHERE c.relkind = 'r'::char AND c.relname = $1 AND s.table_schema = $2 AND f.attnum > 0 ORDER BY f.attnum;`
-	db.LogSQL(s, args)
+	db.LogSQL(ctx, s, args)
 
 	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {
@@ -1027,7 +1027,7 @@ func (db *postgres) GetTables(ctx context.Context) ([]*core.Table, error) {
 	// FIXME: replace public to user customrize schema
 	args := []interface{}{"public"}
 	s := fmt.Sprintf("SELECT tablename FROM pg_tables WHERE schemaname = $1")
-	db.LogSQL(s, args)
+	db.LogSQL(ctx, s, args)
 
 	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {
@@ -1053,7 +1053,7 @@ func (db *postgres) GetIndexes(ctx context.Context, tableName string) (map[strin
 	// FIXME: replace the public schema to user specify schema
 	args := []interface{}{"public", tableName}
 	s := fmt.Sprintf("SELECT indexname, indexdef FROM pg_indexes WHERE schemaname=$1 AND tablename=$2")
-	db.LogSQL(s, args)
+	db.LogSQL(ctx, s, args)
 
 	rows, err := db.DB().Query(ctx, s, args...)
 	if err != nil {

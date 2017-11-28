@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/go-xorm/core"
+	"github.com/micanzhang/core"
 )
 
 // Rows rows wrapper a rows to

@@ -3,7 +3,7 @@ package xorm
 import (
 	"reflect"
 
-	"github.com/go-xorm/core"
+	"github.com/micanzhang/core"
 )
 
 var (

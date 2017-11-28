@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-xorm/core"
+	"github.com/micanzhang/core"
 )
 
 var colStrTests = []struct {

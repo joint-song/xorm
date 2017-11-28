@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-xorm/core"
+	"github.com/micanzhang/core"
 )
 
 // Insert insert one or more beans

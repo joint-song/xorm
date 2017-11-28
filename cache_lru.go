@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-xorm/core"
+	"github.com/micanzhang/core"
 )
 
 // LRUCacher implments cache object facilities

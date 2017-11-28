@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/go-xorm/core"
+	"github.com/micanzhang/core"
 )
 
 var (

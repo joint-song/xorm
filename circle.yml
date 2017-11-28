@@ -17,7 +17,6 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            git clone https://github.com/micanzhang/core /go/src/github.com/go-xorm/core
             go get -v -t -d ./...
       - run:
           name: Build
@@ -54,7 +53,6 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            git clone https://github.com/micanzhang/core /go/src/github.com/go-xorm/core
             go get -v -t -d ./...
       - run:
           name: Build

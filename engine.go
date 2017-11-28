@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/go-xorm/builder"
-	"github.com/go-xorm/core"
+	"github.com/micanzhang/core"
 )
 
 // Engine is the major struct of xorm, it means a database manager.

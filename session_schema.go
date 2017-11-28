@@ -12,7 +12,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-xorm/core"
+	"github.com/micanzhang/core"
 )
 
 // Ping test if database is ok

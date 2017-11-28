@@ -9,7 +9,7 @@ import (
 	"io"
 	"log"
 
-	"github.com/go-xorm/core"
+	"github.com/micanzhang/core"
 )
 
 // default log options

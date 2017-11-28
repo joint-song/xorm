@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/go-xorm/core"
+	"github.com/micanzhang/core"
 )
 
 const (

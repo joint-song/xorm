@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/go-xorm/core"
+	"github.com/micanzhang/core"
 )
 
 func (session *Session) queryPreprocess(sqlStr *string, paramStr ...interface{}) {

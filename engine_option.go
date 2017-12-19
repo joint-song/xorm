@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 // Option config Engine behavior

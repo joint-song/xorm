@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 // str2PK convert string value to primary key value according to tp

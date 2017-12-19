@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/go-xorm/builder"
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 const (

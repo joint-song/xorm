@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 var colStrTests = []struct {

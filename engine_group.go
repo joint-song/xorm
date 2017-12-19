@@ -7,7 +7,7 @@ package xorm
 import (
 	"context"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 // EngineGroup defines an engine group

@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 // Rows rows wrapper a rows to

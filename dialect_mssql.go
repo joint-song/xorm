@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 var (

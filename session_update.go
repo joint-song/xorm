@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/go-xorm/builder"
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 func (session *Session) cacheUpdate(ctx context.Context, table *core.Table, tableName, sqlStr string, args ...interface{}) error {

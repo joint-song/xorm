@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/go-xorm/builder"
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 func (session *Session) genQuerySQL(sqlorArgs ...interface{}) (string, []interface{}, error) {

@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 const (

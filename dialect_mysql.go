@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 var (

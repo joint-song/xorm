@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 func (session *Session) str2Time(col *core.Column, data string) (outTime time.Time, outErr error) {

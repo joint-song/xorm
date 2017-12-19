@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/go-xorm/builder"
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 type incrParam struct {

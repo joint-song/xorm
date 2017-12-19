@@ -12,7 +12,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 // Ping test if database is ok

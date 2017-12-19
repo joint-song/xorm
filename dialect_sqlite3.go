@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 var (

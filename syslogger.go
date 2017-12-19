@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"log/syslog"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 var _ core.ILogger = &SyslogLogger{}

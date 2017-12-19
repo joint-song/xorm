@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 func TestPostgresDialect(t *testing.T) {

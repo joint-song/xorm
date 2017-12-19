@@ -9,7 +9,7 @@ import (
 	"io"
 	"log"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 // default log options

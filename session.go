@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 // Session keep a pointer to sql.DB and provides all execution of all

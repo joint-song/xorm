@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 // Interface defines the interface which Engine, EngineGroup and Session will implementate.

@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 // LRUCacher implments cache object facilities

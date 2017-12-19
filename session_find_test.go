@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 	"github.com/stretchr/testify/assert"
 )
 

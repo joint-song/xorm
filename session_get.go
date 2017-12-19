@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 // Get retrieve one record from database, bean's non-empty fields

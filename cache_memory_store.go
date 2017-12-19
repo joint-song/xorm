@@ -7,7 +7,7 @@ package xorm
 import (
 	"sync"
 
-	"github.com/micanzhang/core"
+	"github.com/lingochamp/core"
 )
 
 var _ core.CacheStore = NewMemoryStore()

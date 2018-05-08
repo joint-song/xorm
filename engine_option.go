@@ -65,7 +65,7 @@ func TZDatabaseOption(local *time.Location) Option {
 	}
 }
 
-func MaxIdleOpenOption(conns int) Option {
+func MaxOpenConnsOption(conns int) Option {
 	return func(x *Engine) {
 		x.SetMaxOpenConns(conns)
 	}
@@ -74,6 +74,12 @@ func MaxIdleOpenOption(conns int) Option {
 func MaxIdleConnsOption(conns int) Option {
 	return func(x *Engine) {
 		x.SetMaxIdleConns(conns)
+	}
+}
+
+func ConnMaxLifetimeOption(d time.Duration) Option {
+	return func(x *Engine) {
+		x.SetConnMaxLifetime(d)
 	}
 }
 
@@ -86,12 +92,6 @@ func MapperOption(mapper core.IMapper) Option {
 func DefaultCacherOption(cacher core.Cacher) Option {
 	return func(x *Engine) {
 		x.SetDefaultCacher(cacher)
-	}
-}
-
-func ConnMaxLifetimeOption(d time.Duration) Option {
-	return func(x *Engine) {
-		x.SetConnMaxLifetime(d)
 	}
 }
 

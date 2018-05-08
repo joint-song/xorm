@@ -1,10 +1,7 @@
-[中文](https://github.com/go-xorm/xorm/blob/master/README_CN.md)
+Xorm is a simple and powerful ORM for Go. 
 
-Xorm is a simple and powerful ORM for Go.
-
-[![CircleCI](https://circleci.com/gh/go-xorm/xorm.svg?style=shield)](https://circleci.com/gh/go-xorm/xorm) [![codecov](https://codecov.io/gh/go-xorm/xorm/branch/master/graph/badge.svg)](https://codecov.io/gh/go-xorm/xorm)
-[![](https://goreportcard.com/badge/github.com/go-xorm/xorm)](https://goreportcard.com/report/github.com/go-xorm/xorm) 
-[![Join the chat at https://img.shields.io/discord/323460943201959939.svg](https://img.shields.io/discord/323460943201959939.svg)](https://discord.gg/HuR2CF3)
+[![CircleCI](https://circleci.com/gh/lingochamp/xorm.svg?style=shield)](https://circleci.com/gh/lingochamp/xorm)
+[![](https://goreportcard.com/badge/github.com/lingochamp/xorm)](https://goreportcard.com/report/github.com/lingochamp/xorm) 
 
 # Features
 
@@ -27,6 +24,8 @@ Xorm is a simple and powerful ORM for Go.
 * Optimistic Locking support
 
 * SQL Builder support via [github.com/go-xorm/builder](https://github.com/go-xorm/builder)
+
+* context.Context support
 
 # Drivers Support
 
@@ -72,7 +71,7 @@ methods can use `builder.Cond` as parameter
 
 # Installation
 
-	go get github.com/go-xorm/xorm
+    go get github.com/lingochamp/xorm
 
 # Documents
 
@@ -103,34 +102,34 @@ type User struct {
     Updated time.Time `xorm:"updated"`
 }
 
-err := engine.Sync2(new(User))
+err := engine.Sync2(context.Background(), new(User))
 ```
 
 * `Query` runs a SQL string, the returned results is `[]map[string][]byte`, `QueryString` returns `[]map[string]string`.
 
 ```Go
-results, err := engine.Query("select * from user")
+results, err := engine.Query(context.Background(), "select * from user")
 
-results, err := engine.QueryString("select * from user")
+results, err := engine.QueryString(context.Background(), "select * from user")
 ```
 
 * `Execute` runs a SQL string, it returns `affected` and `error`
 
 ```Go
-affected, err := engine.Exec("update user set age = ? where name = ?", age, name)
+affected, err := engine.Exec(context.Background(), "update user set age = ? where name = ?", age, name)
 ```
 
 * `Insert` one or multiple records to database
 
 ```Go
-affected, err := engine.Insert(&user)
+affected, err := engine.Insert(context.Background(), &user)
 // INSERT INTO struct () values ()
-affected, err := engine.Insert(&user1, &user2)
+affected, err := engine.Insert(context.Background(), &user1, &user2)
 // INSERT INTO struct1 () values ()
 // INSERT INTO struct2 () values ()
-affected, err := engine.Insert(&users)
+affected, err := engine.Insert(context.Background(), &users)
 // INSERT INTO struct () values (),(),()
-affected, err := engine.Insert(&user1, &users)
+affected, err := engine.Insert(context.Background(), &user1, &users)
 // INSERT INTO struct1 () values ()
 // INSERT INTO struct2 () values (),(),()
 ```
@@ -138,40 +137,40 @@ affected, err := engine.Insert(&user1, &users)
 * Query one record from database
 
 ```Go
-has, err := engine.Get(&user)
+has, err := engine.Get(context.Background(), &user)
 // SELECT * FROM user LIMIT 1
-has, err := engine.Where("name = ?", name).Desc("id").Get(&user)
+has, err := engine.Where("name = ?", name).Desc("id").Get(context.Background(), &user)
 // SELECT * FROM user WHERE name = ? ORDER BY id DESC LIMIT 1
 var name string
-has, err := engine.Where("id = ?", id).Cols("name").Get(&name)
+has, err := engine.Where("id = ?", id).Cols("name").Get(context.Background(), &name)
 // SELECT name FROM user WHERE id = ?
 var id int64
-has, err := engine.Where("name = ?", name).Cols("id").Get(&id)
+has, err := engine.Where("name = ?", name).Cols("id").Get(context.Background(), &id)
 // SELECT id FROM user WHERE name = ?
 var valuesMap = make(map[string]string)
-has, err := engine.Where("id = ?", id).Get(&valuesMap)
+has, err := engine.Where("id = ?", id).Get(context.Background(), &valuesMap)
 // SELECT * FROM user WHERE id = ?
 var valuesSlice = make([]interface{}, len(cols))
-has, err := engine.Where("id = ?", id).Cols(cols...).Get(&valuesSlice)
+has, err := engine.Where("id = ?", id).Cols(cols...).Get(context.Background(), &valuesSlice)
 // SELECT col1, col2, col3 FROM user WHERE id = ?
 ```
 
 * Check if one record exist on table
 
 ```Go
-has, err := testEngine.Exist(new(RecordExist))
+has, err := testEngine.Exist(context.Background(), new(RecordExist))
 // SELECT * FROM record_exist LIMIT 1
-has, err = testEngine.Exist(&RecordExist{
+has, err = testEngine.Exist(context.Background(), &RecordExist{
 		Name: "test1",
 	})
 // SELECT * FROM record_exist WHERE name = ? LIMIT 1
-has, err = testEngine.Where("name = ?", "test1").Exist(&RecordExist{})
+has, err = testEngine.Where("name = ?", "test1").Exist(context.Background(), &RecordExist{})
 // SELECT * FROM record_exist WHERE name = ? LIMIT 1
-has, err = testEngine.SQL("select * from record_exist where name = ?", "test1").Exist()
+has, err = testEngine.SQL("select * from record_exist where name = ?", "test1").Exist(context.Background())
 // select * from record_exist where name = ?
-has, err = testEngine.Table("record_exist").Exist()
+has, err = testEngine.Table("record_exist").Exist(context.Background())
 // SELECT * FROM record_exist LIMIT 1
-has, err = testEngine.Table("record_exist").Where("name = ?", "test1").Exist()
+has, err = testEngine.Table("record_exist").Where("name = ?", "test1").Exist(context.Background())
 // SELECT * FROM record_exist WHERE name = ? LIMIT 1
 ```
 
@@ -179,7 +178,7 @@ has, err = testEngine.Table("record_exist").Where("name = ?", "test1").Exist()
 
 ```Go
 var users []User
-err := engine.Where("name = ?", name).And("age > 10").Limit(10, 0).Find(&users)
+err := engine.Where("name = ?", name).And("age > 10").Limit(10, 0).Find(context.Background(), &users)
 // SELECT * FROM user WHERE name = ? AND age > 10 limit 0 offset 10
 
 type Detail struct {
@@ -196,20 +195,20 @@ var users []UserDetail
 err := engine.Table("user").Select("user.*, detail.*").
     Join("INNER", "detail", "detail.user_id = user.id").
     Where("user.name = ?", name).Limit(10, 0).
-    Find(&users)
+    Find(context.Background(), &users)
 // SELECT user.*, detail.* FROM user INNER JOIN detail WHERE user.name = ? limit 0 offset 10
 ```
 
 * Query multiple records and record by record handle, there are two methods Iterate and Rows
 
 ```Go
-err := engine.Iterate(&User{Name:name}, func(idx int, bean interface{}) error {
+err := engine.Iterate(context.Background(), &User{Name:name}, func(idx int, bean interface{}) error {
     user := bean.(*User)
     return nil
 })
 // SELECT * FROM user
 
-rows, err := engine.Rows(&User{Name:name})
+rows, err := engine.Rows(context.Background(), &User{Name:name})
 // SELECT * FROM user
 defer rows.Close()
 bean := new(Struct)
@@ -221,47 +220,47 @@ for rows.Next() {
 * Update one or more records, default will update non-empty and non-zero fields except when you use Cols, AllCols and so on.
 
 ```Go
-affected, err := engine.Id(1).Update(&user)
+affected, err := engine.Id(1).Update(context.Background(), &user)
 // UPDATE user SET ... Where id = ?
 
-affected, err := engine.Update(&user, &User{Name:name})
+affected, err := engine.Update(context.Background(), &user, &User{Name:name})
 // UPDATE user SET ... Where name = ?
 
 var ids = []int64{1, 2, 3}
-affected, err := engine.In("id", ids).Update(&user)
+affected, err := engine.In("id", ids).Update(context.Background(), &user)
 // UPDATE user SET ... Where id IN (?, ?, ?)
 
 // force update indicated columns by Cols
-affected, err := engine.Id(1).Cols("age").Update(&User{Name:name, Age: 12})
+affected, err := engine.Id(1).Cols("age").Update(context.Background(), &User{Name:name, Age: 12})
 // UPDATE user SET age = ?, updated=? Where id = ?
 
 // force NOT update indicated columns by Omit
-affected, err := engine.Id(1).Omit("name").Update(&User{Name:name, Age: 12})
+affected, err := engine.Id(1).Omit("name").Update(context.Background(), &User{Name:name, Age: 12})
 // UPDATE user SET age = ?, updated=? Where id = ?
 
-affected, err := engine.Id(1).AllCols().Update(&user)
+affected, err := engine.Id(1).AllCols().Update(context.Background(), &user)
 // UPDATE user SET name=?,age=?,salt=?,passwd=?,updated=? Where id = ?
 ```
 
 * Delete one or more records, Delete MUST have condition
 
 ```Go
-affected, err := engine.Where(...).Delete(&user)
+affected, err := engine.Where(...).Delete(context.Background(), &user)
 // DELETE FROM user Where ...
-affected, err := engine.Id(2).Delete(&user)
+affected, err := engine.Id(2).Delete(context.Background(), &user)
 ```
 
 * Count records
 
 ```Go
-counts, err := engine.Count(&user)
+counts, err := engine.Count(context.Background(), &user)
 // SELECT count(*) AS total FROM user
 ```
 
 * Query conditions builder
 
 ```Go
-err := engine.Where(builder.NotIn("a", 1, 2).And(builder.In("b", "c", "d", "e"))).Find(&users)
+err := engine.Where(builder.NotIn("a", 1, 2).And(builder.In("b", "c", "d", "e"))).Find(context.Background(), &users)
 // SELECT id, name ... FROM user WHERE a NOT IN (?, ?) AND b IN (?, ?, ?)
 ```
 
